@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "MQ Dashboard - Dev",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "C:/Users/silen/Downloads/mq-dashboard-nextjs", "run", "dev"],
+      "port": 3000
+    },
+    {
+      "name": "MQ Dashboard - Preview (Production Build)",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "C:/Users/silen/Downloads/mq-dashboard-nextjs", "run", "start"],
+      "port": 3000
+    }
+  ]
+}
