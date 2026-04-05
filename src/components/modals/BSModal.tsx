@@ -16,7 +16,7 @@ export default function BSModal({ bs, onSave, onClose }: { bs:BSData; onSave:(b:
 
   return (
     <Modal title="B/S 貸借対照表を編集" onClose={onClose}>
-      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16, marginBottom:16 }}>
+      <div className="modal-2col" style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16, marginBottom:16 }}>
         <div>
           <div style={{ fontSize:12, fontWeight:700, color:C.blue, marginBottom:10, display:"flex", alignItems:"center", gap:6 }}>
             <span style={{ padding:"2px 10px", background:C.blueLight, borderRadius:99 }}>資産</span>

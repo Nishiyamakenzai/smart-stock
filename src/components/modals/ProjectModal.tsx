@@ -40,7 +40,7 @@ export default function ProjectModal({ project, onSave, onClose, onDelete }: Pro
           />
         </div>
 
-        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8 }}>
+        <div className="modal-3col" style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8 }}>
           <div>
             <label style={{ fontSize:12, color:C.t2, fontWeight:600, display:"block", marginBottom:5 }}>施工月</label>
             <select value={f.month} onChange={e => setF({...f, month:+e.target.value})} style={selectStyle as React.CSSProperties}>

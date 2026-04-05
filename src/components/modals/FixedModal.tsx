@@ -59,11 +59,13 @@ export default function FixedModal({ mfData, abData, onSave, onClose }: FixedMod
           {FK.map(k => (
             <div key={k} style={{ display:"flex", alignItems:"center", gap:8, marginBottom:8 }}>
               <span style={{ fontSize:12, color:C.t2, width:100, flexShrink:0, fontWeight:500 }}>{FL[k]}</span>
-              <input type="number" value={mf2[em]?.[k]||0}
+              <input type="text" inputMode="decimal" value={mf2[em]?.[k]||0}
                 onChange={e => {
+                  const s = e.target.value;
+                  if (s !== "" && !/^-?\d*\.?\d*$/.test(s)) return;
                   const n: MonthlyFixed = JSON.parse(JSON.stringify(mf2));
                   if (!n[em]) n[em] = {f1:0,f2:0,f3:0,f4:0,f5:0};
-                  (n[em] as unknown as Record<string,number>)[k] = parseFloat(e.target.value)||0;
+                  (n[em] as unknown as Record<string,number>)[k] = parseFloat(s)||0;
                   setMf2(n);
                 }}
                 className="input-base" style={{ maxWidth:100, textAlign:"right" }}/>
@@ -76,8 +78,12 @@ export default function FixedModal({ mfData, abData, onSave, onClose }: FixedMod
           {FK.map(k => (
             <div key={k} style={{ display:"flex", alignItems:"center", gap:8, marginBottom:8 }}>
               <span style={{ fontSize:12, color:C.t2, width:100, flexShrink:0, fontWeight:500 }}>{FL[k]}</span>
-              <input type="number" value={ab2[k]||0}
-                onChange={e => setAb2({...ab2,[k]:parseFloat(e.target.value)||0})}
+              <input type="text" inputMode="decimal" value={ab2[k]||0}
+                onChange={e => {
+                  const s = e.target.value;
+                  if (s !== "" && !/^-?\d*\.?\d*$/.test(s)) return;
+                  setAb2({...ab2,[k]:parseFloat(s)||0});
+                }}
                 className="input-base" style={{ maxWidth:100, textAlign:"right" }}/>
               <span style={{ fontSize:12, color:C.t3 }}>万/年</span>
               <span style={{ fontSize:11, color:C.blue, fontWeight:600 }}>

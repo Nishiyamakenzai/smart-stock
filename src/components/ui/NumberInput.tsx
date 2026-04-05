@@ -1,4 +1,5 @@
-import type { CSSProperties } from "react";
+"use client";
+import { useState, useEffect, type CSSProperties } from "react";
 
 interface NumberInputProps {
   label?: string;
@@ -9,6 +10,13 @@ interface NumberInputProps {
 }
 
 export default function NumberInput({ label, value, onChange, unit, sx }: NumberInputProps) {
+  const [str, setStr] = useState(String(value));
+  const [focused, setFocused] = useState(false);
+
+  useEffect(() => {
+    if (!focused) setStr(String(value));
+  }, [value, focused]);
+
   return (
     <div style={sx || {}}>
       {label && (
@@ -16,9 +24,24 @@ export default function NumberInput({ label, value, onChange, unit, sx }: Number
       )}
       <div style={{ display:"flex", alignItems:"center", gap:6 }}>
         <input
-          type="number"
-          value={value}
-          onChange={e => onChange(parseFloat(e.target.value) || 0)}
+          type="text"
+          inputMode="decimal"
+          value={str}
+          onFocus={() => setFocused(true)}
+          onBlur={() => {
+            setFocused(false);
+            const n = parseFloat(str);
+            const final = isNaN(n) ? 0 : n;
+            setStr(String(final));
+            onChange(final);
+          }}
+          onChange={e => {
+            const s = e.target.value;
+            if (s !== "" && !/^-?\d*\.?\d*$/.test(s)) return;
+            setStr(s);
+            const n = parseFloat(s);
+            if (!isNaN(n)) onChange(n);
+          }}
           className="input-base"
         />
         {unit && (

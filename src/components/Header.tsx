@@ -29,7 +29,7 @@ export default function Header({ comp, targets, onOpenTargets, onOpenBS, onLogou
   return (
     <div style={{ background: C.gradHeader, color:"#fff" }}>
       {/* Top bar */}
-      <div style={{
+      <div className="header-top" style={{
         display:"flex", justifyContent:"space-between", alignItems:"center",
         padding:"16px 20px 12px",
       }}>
@@ -42,7 +42,7 @@ export default function Header({ comp, targets, onOpenTargets, onOpenBS, onLogou
             第46期 ｜ プロタイムズ富士吉田店 ｜ 外壁・屋根塗装
           </div>
         </div>
-        <div style={{ display:"flex", gap:6 }}>
+        <div className="header-top-btns" style={{ display:"flex", gap:6 }}>
           {[
             { label:"目標設定", onClick:onOpenTargets, color:"rgba(255,255,255,.15)", border:"rgba(255,255,255,.25)" },
             { label:"B/S",     onClick:onOpenBS,      color:"rgba(255,255,255,.15)", border:"rgba(255,255,255,.25)" },
@@ -62,7 +62,7 @@ export default function Header({ comp, targets, onOpenTargets, onOpenBS, onLogou
       </div>
 
       {/* KPI Cards */}
-      <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:8, padding:"0 20px 16px" }}>
+      <div className="kpi-grid" style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:8, padding:"0 20px 16px" }}>
         {kpis.map((k, i) => {
           const pct = k.t > 0 ? Math.min(k.v / k.t * 100, 100) : 0;
           const isAchieved = k.v >= k.t;
@@ -94,12 +94,12 @@ export default function Header({ comp, targets, onOpenTargets, onOpenBS, onLogou
       </div>
 
       {/* Pipeline */}
-      <div style={{
+      <div className="pipeline-bar" style={{
         display:"flex", gap:0,
         borderTop:"1px solid rgba(255,255,255,.1)",
       }}>
         {Object.entries(comp.pipe).map(([st, cnt]) => (
-          <div key={st} style={{
+          <div key={st} className="pipeline-item" style={{
             flex:1, padding:"10px 0", textAlign:"center",
             borderRight:"1px solid rgba(255,255,255,.08)",
             transition:"background .15s",

@@ -220,6 +220,34 @@ select { -webkit-appearance: none; }
   background: #fff;
 }
 
+/* ── Mobile responsive ─────────────────── */
+@media (max-width: 520px) {
+  /* iOSでfocus時のズーム防止 (font-size>=16px) */
+  .input-base { font-size: 16px !important; }
+
+  /* Header KPI: 4列 → 2列 */
+  .kpi-grid { grid-template-columns: repeat(2, 1fr) !important; }
+  .kpi-card { padding: 12px 14px !important; }
+
+  /* Header top bar: ボタンを小さく */
+  .header-top { padding: 12px 14px 10px !important; }
+  .header-top-btns { gap: 3px !important; }
+  .header-top-btns button { padding: 5px 8px !important; font-size: 10px !important; }
+
+  /* Pipeline: スクロール可能に */
+  .pipeline-bar { overflow-x: auto !important; }
+  .pipeline-item { min-width: 70px !important; }
+
+  /* タブ: 小さく */
+  .tab-btn { padding: 10px 11px !important; font-size: 12px !important; }
+
+  /* モーダル内3列グリッド → 2列 */
+  .modal-3col { grid-template-columns: 1fr 1fr !important; }
+
+  /* モーダル内2列グリッド → 1列 */
+  .modal-2col { grid-template-columns: 1fr !important; }
+}
+
 /* ── Stagger animation for lists ───────── */
 .stagger-item:nth-child(1)  { animation-delay: .03s; }
 .stagger-item:nth-child(2)  { animation-delay: .06s; }

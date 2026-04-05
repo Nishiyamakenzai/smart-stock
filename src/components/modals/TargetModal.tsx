@@ -16,6 +16,9 @@ const FIELDS: [string, keyof Targets, string, string][] = [
 
 export default function TargetModal({ targets, onSave, onClose }: { targets:Targets; onSave:(t:Targets)=>void; onClose:()=>void }) {
   const [t, setT] = useState<Targets>({...targets});
+  const [strs, setStrs] = useState<Record<string,string>>(
+    () => Object.fromEntries(FIELDS.map(([,k]) => [k, String(targets[k])])));
+
   return (
     <Modal title="年間目標設定" onClose={onClose}>
       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
@@ -25,7 +28,23 @@ export default function TargetModal({ targets, onSave, onClose }: { targets:Targ
               <span>{icon}</span>{l}
             </div>
             <div style={{ display:"flex", alignItems:"center", gap:6 }}>
-              <input type="number" value={t[k]} onChange={e => setT({...t,[k]:parseFloat(e.target.value)||0})}
+              <input
+                type="text"
+                inputMode="decimal"
+                value={strs[k]}
+                onChange={e => {
+                  const s = e.target.value;
+                  if (s !== "" && !/^-?\d*\.?\d*$/.test(s)) return;
+                  setStrs({...strs, [k]: s});
+                  const n = parseFloat(s);
+                  if (!isNaN(n)) setT({...t, [k]: n});
+                }}
+                onBlur={() => {
+                  const n = parseFloat(strs[k]);
+                  const final = isNaN(n) ? 0 : n;
+                  setStrs({...strs, [k]: String(final)});
+                  setT({...t, [k]: final});
+                }}
                 className="input-base" style={{ fontWeight:700, fontSize:16 }}/>
               <span style={{ fontSize:12, color:C.t3, flexShrink:0 }}>{u}</span>
             </div>
