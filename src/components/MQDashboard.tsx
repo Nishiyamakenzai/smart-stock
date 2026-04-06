@@ -10,7 +10,7 @@ import ProjectModal from "./modals/ProjectModal";
 import FixedModal from "./modals/FixedModal";
 import TargetModal from "./modals/TargetModal";
 import BSModal from "./modals/BSModal";
-import { DEMO_PROJECTS, DEMO_MF, DEFAULT_AB, DEFAULT_TARGETS, DEFAULT_BS } from "@/lib/data";
+import { DEMO_PROJECTS, DEMO_MF, DEFAULT_AB, DEFAULT_TARGETS, DEFAULT_BS, migrateMF, migrateAB } from "@/lib/data";
 import { computeData, aiOverall } from "@/lib/utils";
 import type { Project, MonthlyFixed, AnnualBudget, Targets, BSData } from "@/lib/types";
 
@@ -41,8 +41,8 @@ export default function MQDashboard({ onLogout }: { onLogout: () => void }) {
       .then((r) => r.json())
       .then((d) => {
         if (d["mq-projects"]) setProjects(d["mq-projects"]);
-        if (d["mq-mf"])       setMf(d["mq-mf"]);
-        if (d["mq-ab"])       setAb(d["mq-ab"]);
+        if (d["mq-mf"])       setMf(migrateMF(d["mq-mf"]));
+        if (d["mq-ab"])       setAb(migrateAB(d["mq-ab"]));
         if (d["mq-targets"])  setTargets(d["mq-targets"]);
         if (d["mq-bs"])       setBs(d["mq-bs"]);
       })

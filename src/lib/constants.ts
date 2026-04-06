@@ -9,11 +9,29 @@ export const VL: Record<string, string> = {
   fee:"手数料", fixRoy:"固定ロイ", varRoy:"変動ロイ", other:"その他"
 };
 
-// 固定費キー・ラベル
+// 固定費キー・ラベル（セクション）
 export const FK = ["f1","f2","f3","f4","f5"] as const;
 export type FKey = typeof FK[number];
 export const FL: Record<string, string> = {
-  f1:"F1 人件費", f2:"F2 経費", f3:"F3 金利", f4:"F4 戦略費", f5:"F5 償却費"
+  f1:"F1 人件費", f2:"F2 経費", f3:"F3 戦略費", f4:"F4 金利", f5:"F5 保険・顧問等"
+};
+
+// 固定費サブ項目ラベル
+export const FL1: Record<string, string> = {
+  exec:"役員報酬", salary:"給与", bonus:"賞与", social:"社会保険料", welfare:"福利厚生費"
+};
+export const FL2: Record<string, string> = {
+  rent:"家賃", repair:"修繕費", fuel:"燃料代"
+};
+export const FL3: Record<string, string> = {
+  adWeb:"広告費（ウェブ）", adFlyer:"広告費（チラシ）", adPortal:"広告費（ポータル）",
+  adSign:"広告費（看板/広報/その他）", adYoutube:"広告費（Youtube/ブログ等）",
+  system:"システム利用料", telecom:"通信費", travel:"旅費交通費",
+  training:"研修費", supplies:"消耗品", other:"その他"
+};
+export const FL4: Record<string, string> = { interest:"借入金利息" };
+export const FL5: Record<string, string> = {
+  insurance:"保険料", advisor:"顧問料", membership:"会費", misc:"雑費"
 };
 
 // ステータスカラー（ライトテーマ）

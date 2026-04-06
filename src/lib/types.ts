@@ -18,23 +18,56 @@ export interface Project {
   status: string;
 }
 
+// F1 人件費
+export interface F1Items {
+  exec: number;      // 役員報酬
+  salary: number;    // 給与
+  bonus: number;     // 賞与
+  social: number;    // 社会保険料
+  welfare: number;   // 福利厚生費
+}
+// F2 経費
+export interface F2Items {
+  rent: number;      // 家賃
+  repair: number;    // 修繕費
+  fuel: number;      // 燃料代
+}
+// F3 戦略費
+export interface F3Items {
+  adWeb: number;     // 広告費（ウェブ）
+  adFlyer: number;   // 広告費（チラシ）
+  adPortal: number;  // 広告費（ポータル）
+  adSign: number;    // 広告費（看板/広報/その他）
+  adYoutube: number; // 広告費（Youtube/ブログ等）
+  system: number;    // システム利用料
+  telecom: number;   // 通信費
+  travel: number;    // 旅費交通費
+  training: number;  // 研修費
+  supplies: number;  // 消耗品
+  other: number;     // その他
+}
+// F4 金利
+export interface F4Items {
+  interest: number;  // 借入金利息
+}
+// F5 保険・顧問等
+export interface F5Items {
+  insurance: number; // 保険料
+  advisor: number;   // 顧問料
+  membership: number;// 会費
+  misc: number;      // 雑費
+}
+
 export interface FixedCosts {
-  f1: number;
-  f2: number;
-  f3: number;
-  f4: number;
-  f5: number;
+  f1: F1Items;
+  f2: F2Items;
+  f3: F3Items;
+  f4: F4Items;
+  f5: F5Items;
 }
 
 export type MonthlyFixed = Record<number, FixedCosts>;
-
-export interface AnnualBudget {
-  f1: number;
-  f2: number;
-  f3: number;
-  f4: number;
-  f5: number;
-}
+export type AnnualBudget = FixedCosts; // 同一構造（年間金額）
 
 export interface Targets {
   pq: number;

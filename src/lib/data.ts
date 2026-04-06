@@ -1,10 +1,85 @@
-import type { Project, MonthlyFixed, AnnualBudget, Targets, BSData, PrevPeriod } from "./types";
-import { FK } from "./constants";
+import type {
+  Project, MonthlyFixed, AnnualBudget, Targets, BSData, PrevPeriod,
+  VBreak, FixedCosts, F1Items, F2Items, F3Items, F4Items, F5Items,
+} from "./types";
 
+// ── デフォルト値ファクトリ ─────────────────────────────────────
 export const newV = () => ({
   scaffold:0, paint:0, sub:0, material:0, fee:0, fixRoy:0, varRoy:0, other:0
 });
 
+export const defaultF1 = (): F1Items => ({ exec:0, salary:0, bonus:0, social:0, welfare:0 });
+export const defaultF2 = (): F2Items => ({ rent:0, repair:0, fuel:0 });
+export const defaultF3 = (): F3Items => ({
+  adWeb:0, adFlyer:0, adPortal:0, adSign:0, adYoutube:0,
+  system:0, telecom:0, travel:0, training:0, supplies:0, other:0
+});
+export const defaultF4 = (): F4Items => ({ interest:0 });
+export const defaultF5 = (): F5Items => ({ insurance:0, advisor:0, membership:0, misc:0 });
+export const defaultFixedCosts = (): FixedCosts => ({
+  f1: defaultF1(), f2: defaultF2(), f3: defaultF3(), f4: defaultF4(), f5: defaultF5()
+});
+
+// ── 合計計算 ──────────────────────────────────────────────────
+export const totalV = (v: VBreak): number =>
+  v.scaffold + v.paint + v.sub + v.material + v.fee + v.fixRoy + v.varRoy + v.other;
+
+const sumObj = (obj: object): number =>
+  Object.values(obj).reduce((a: number, b: unknown) => a + (Number(b) || 0), 0);
+
+export const totalF = (f: FixedCosts): number =>
+  sumObj(f.f1) + sumObj(f.f2) + sumObj(f.f3) + sumObj(f.f4) + sumObj(f.f5);
+
+// ── 旧データ（number型）→ 新データ（object型）マイグレーション ──
+export function migrateFixedCosts(raw: unknown): FixedCosts {
+  if (!raw || typeof raw !== "object") return defaultFixedCosts();
+  const f = raw as Record<string, unknown>;
+  if (typeof f.f1 === "object" && f.f1 !== null) return raw as FixedCosts;
+  // 旧形式: {f1:人件費, f2:経費, f3:金利, f4:戦略費, f5:償却費}
+  // → 新形式: f3=戦略費, f4=金利 (入れ替え)
+  const old1 = Number(f.f1) || 0; // 旧 人件費 → 新 F1
+  const old2 = Number(f.f2) || 0; // 旧 経費   → 新 F2
+  const old3 = Number(f.f3) || 0; // 旧 金利   → 新 F4.interest
+  const old4 = Number(f.f4) || 0; // 旧 戦略費 → 新 F3.other
+  const old5 = Number(f.f5) || 0; // 旧 償却費 → 新 F5.insurance
+  return {
+    f1: { exec:old1, salary:0, bonus:0, social:0, welfare:0 },
+    f2: { rent:old2, repair:0, fuel:0 },
+    f3: { adWeb:0, adFlyer:0, adPortal:0, adSign:0, adYoutube:0, system:0, telecom:0, travel:0, training:0, supplies:0, other:old4 },
+    f4: { interest:old3 },
+    f5: { insurance:old5, advisor:0, membership:0, misc:0 },
+  };
+}
+
+export function migrateMF(raw: unknown): MonthlyFixed {
+  if (!raw || typeof raw !== "object") return DEMO_MF;
+  const result: MonthlyFixed = {};
+  for (let i = 0; i < 12; i++) {
+    const entry = (raw as Record<string, unknown>)[String(i)];
+    result[i] = migrateFixedCosts(entry ?? {});
+  }
+  return result;
+}
+
+export function migrateAB(raw: unknown): AnnualBudget {
+  if (!raw || typeof raw !== "object") return DEFAULT_AB;
+  const f = raw as Record<string, unknown>;
+  if (typeof f.f1 === "object" && f.f1 !== null) return raw as AnnualBudget;
+  const old1 = Number(f.f1) || 0;
+  const old2 = Number(f.f2) || 0;
+  const old3 = Number(f.f3) || 0;
+  const old4 = Number(f.f4) || 0;
+  const old5 = Number(f.f5) || 0;
+  return {
+    f1: { exec:old1, salary:0, bonus:0, social:0, welfare:0 },
+    f2: { rent:old2, repair:0, fuel:0 },
+    f3: { adWeb:0, adFlyer:0, adPortal:0, adSign:0, adYoutube:0, system:0, telecom:0, travel:0, training:0, supplies:0, other:old4 },
+    f4: { interest:old3 },
+    f5: { insurance:old5, advisor:0, membership:0, misc:0 },
+  };
+}
+
+// ── デモデータ ──────────────────────────────────────────────
 export const DEMO_PROJECTS: Project[] = [
   {id:1,name:"田中邸 外壁塗装",month:4,p:210,v:{scaffold:25,paint:45,sub:10,material:15,fee:3,fixRoy:4,varRoy:3,other:0},status:"完了"},
   {id:2,name:"佐藤邸 屋根外壁",month:4,p:280,v:{scaffold:35,paint:55,sub:15,material:22,fee:4,fixRoy:4,varRoy:5,other:0},status:"完了"},
@@ -29,11 +104,25 @@ export const DEMO_PROJECTS: Project[] = [
 
 export const DEMO_MF: MonthlyFixed = (() => {
   const m: MonthlyFixed = {};
-  for (let i = 0; i < 12; i++) m[i] = {f1:120,f2:45,f3:8,f4:35,f5:12};
+  for (let i = 0; i < 12; i++) m[i] = {
+    f1: { exec:50, salary:40, bonus:10, social:15, welfare:5 },          // 計120万
+    f2: { rent:30, repair:10, fuel:5 },                                  // 計45万
+    f3: { adWeb:8, adFlyer:5, adPortal:10, adSign:3, adYoutube:2,        // 計35万
+          system:3, telecom:1, travel:1, training:1, supplies:1, other:0 },
+    f4: { interest:8 },                                                   // 計8万
+    f5: { insurance:5, advisor:4, membership:2, misc:1 },                 // 計12万
+  };
   return m;
 })();
 
-export const DEFAULT_AB: AnnualBudget = {f1:1440, f2:540, f3:96, f4:420, f5:144};
+export const DEFAULT_AB: AnnualBudget = {
+  f1: { exec:600, salary:480, bonus:120, social:180, welfare:60 },        // 計1440万
+  f2: { rent:360, repair:120, fuel:60 },                                  // 計540万
+  f3: { adWeb:96, adFlyer:60, adPortal:120, adSign:36, adYoutube:24,      // 計420万
+        system:36, telecom:12, travel:12, training:12, supplies:12, other:0 },
+  f4: { interest:96 },                                                    // 計96万
+  f5: { insurance:60, advisor:48, membership:24, misc:12 },               // 計144万
+};
 
 export const DEFAULT_TARGETS: Targets = {pq:12000, mq:5760, g:1500, q:80, avgP:190, mRate:48};
 
@@ -47,16 +136,6 @@ export const PREV2: PrevPeriod = {pq:6200, vq:3350, mq:2850, f:2200, g:650, q:38
 
 export const defaultMF = (base?: Partial<MonthlyFixed>): MonthlyFixed => {
   const m: MonthlyFixed = {};
-  for (let i = 0; i < 12; i++) {
-    m[i] = base?.[i] ?? {f1:0,f2:0,f3:0,f4:0,f5:0};
-  }
+  for (let i = 0; i < 12; i++) m[i] = base?.[i] ?? defaultFixedCosts();
   return m;
 };
-
-import type { VBreak, FixedCosts } from "./types";
-
-export const totalV = (v: VBreak): number =>
-  v.scaffold + v.paint + v.sub + v.material + v.fee + v.fixRoy + v.varRoy + v.other;
-
-export const totalF = (f: FixedCosts): number =>
-  f.f1 + f.f2 + f.f3 + f.f4 + f.f5;

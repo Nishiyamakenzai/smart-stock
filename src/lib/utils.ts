@@ -1,6 +1,6 @@
 import type { Project, MonthlyFixed, ComputedData, AIHint, Targets } from "./types";
 import { MS, VK, STC } from "./constants";
-import { totalV, totalF, PREV } from "./data";
+import { totalV, totalF, defaultFixedCosts, PREV } from "./data";
 
 export function computeData(projects: Project[], mf: MonthlyFixed): ComputedData {
   const md = MS.map((_, i) => {
@@ -8,7 +8,7 @@ export function computeData(projects: Project[], mf: MonthlyFixed): ComputedData
     const pq = ps.reduce((s, p) => s + p.p, 0);
     const vq = ps.reduce((s, p) => s + totalV(p.v), 0);
     const mq = pq - vq, q = ps.length;
-    const fObj = mf[i] || {f1:0,f2:0,f3:0,f4:0,f5:0};
+    const fObj = mf[i] || defaultFixedCosts();
     const f = totalF(fObj), g = mq - f;
     const avgP = q > 0 ? pq / q : 0;
     const avgM = q > 0 ? mq / q : 0;
