@@ -38,3 +38,12 @@ export async function dbSet(key: string, value: unknown): Promise<void> {
     .upsert({ key, value }, { onConflict: "key" });
   if (error) throw new Error(`dbSet failed for key "${key}": ${error.message}`);
 }
+
+/** 指定キーのレコードを削除 */
+export async function dbDelete(key: string): Promise<void> {
+  const { error } = await getClient()
+    .from("app_data")
+    .delete()
+    .eq("key", key);
+  if (error) throw new Error(`dbDelete failed for key "${key}": ${error.message}`);
+}
