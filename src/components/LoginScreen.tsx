@@ -6,28 +6,32 @@ interface Props {
   onLogin: () => void;
 }
 
+type ResetStep = "email" | "code";
+
 export default function LoginScreen({ mode, onLogin }: Props) {
   const [id, setId] = useState("");
   const [pw, setPw] = useState("");
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // リセットモード
+  // リセット状態
   const [showReset, setShowReset] = useState(false);
-  const [resetKey, setResetKey] = useState("");
+  const [resetStep, setResetStep] = useState<ResetStep>("email");
+  const [resetEmail, setResetEmail] = useState("");
+  const [otp, setOtp] = useState("");
   const [newId, setNewId] = useState("");
   const [newPw, setNewPw] = useState("");
   const [newPw2, setNewPw2] = useState("");
   const [resetDone, setResetDone] = useState(false);
 
+  /* ── ログイン / セットアップ ── */
   const handleSetup = async () => {
     if (id.length < 3) { setErr("IDは3文字以上で入力してください"); return; }
     if (pw.length < 4) { setErr("パスワードは4文字以上で入力してください"); return; }
     setLoading(true); setErr("");
     try {
       const res = await fetch("/api/auth/setup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id, pw }),
       });
       const data = await res.json();
@@ -42,8 +46,7 @@ export default function LoginScreen({ mode, onLogin }: Props) {
     setLoading(true); setErr("");
     try {
       const res = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id, pw }),
       });
       const data = await res.json();
@@ -53,17 +56,33 @@ export default function LoginScreen({ mode, onLogin }: Props) {
     finally { setLoading(false); }
   };
 
-  const handleReset = async () => {
-    if (!resetKey) { setErr("リセットキーを入力してください"); return; }
+  /* ── リセット Step1: メール送信 ── */
+  const handleSendCode = async () => {
+    if (!resetEmail) { setErr("メールアドレスを入力してください"); return; }
+    setLoading(true); setErr("");
+    try {
+      const res = await fetch("/api/auth/reset-request", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: resetEmail }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setErr(data.error ?? "エラーが発生しました"); return; }
+      setResetStep("code");
+    } catch { setErr("通信エラーが発生しました"); }
+    finally { setLoading(false); }
+  };
+
+  /* ── リセット Step2: コード確認 ── */
+  const handleConfirmReset = async () => {
+    if (!otp) { setErr("認証コードを入力してください"); return; }
     if (newId.length < 3) { setErr("新しいIDは3文字以上で入力してください"); return; }
     if (newPw.length < 4) { setErr("新しいパスワードは4文字以上で入力してください"); return; }
     if (newPw !== newPw2) { setErr("パスワードが一致しません"); return; }
     setLoading(true); setErr("");
     try {
-      const res = await fetch("/api/auth/reset", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ resetKey, newId, newPw }),
+      const res = await fetch("/api/auth/reset-confirm", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ otp, newId, newPw }),
       });
       const data = await res.json();
       if (!res.ok) { setErr(data.error ?? "リセットに失敗しました"); return; }
@@ -74,21 +93,20 @@ export default function LoginScreen({ mode, onLogin }: Props) {
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key !== "Enter") return;
-    if (showReset) handleReset();
-    else if (mode === "setup") handleSetup();
-    else handleLogin();
+    if (!showReset) { mode === "setup" ? handleSetup() : handleLogin(); return; }
+    if (resetStep === "email") handleSendCode();
+    else handleConfirmReset();
   };
 
   const inputStyle: React.CSSProperties = { fontSize: 14, padding: "12px 14px" };
 
   return (
     <div style={{
-      minHeight: "100vh",
-      background: "linear-gradient(135deg, #f0f4f8 0%, #e8f0fe 100%)",
-      display: "flex", alignItems: "center", justifyContent: "center",
-      padding: 20,
+      minHeight:"100vh",
+      background:"linear-gradient(135deg, #f0f4f8 0%, #e8f0fe 100%)",
+      display:"flex", alignItems:"center", justifyContent:"center",
+      padding:20,
     }}>
-      {/* 装飾バブル */}
       <div style={{ position:"fixed", top:"-20%", right:"-10%", width:500, height:500, borderRadius:"50%", background:"linear-gradient(135deg,#3b82f620,#1d4ed810)", pointerEvents:"none" }}/>
       <div style={{ position:"fixed", bottom:"-20%", left:"-10%", width:400, height:400, borderRadius:"50%", background:"linear-gradient(135deg,#8b5cf620,#6d28d910)", pointerEvents:"none" }}/>
 
@@ -104,7 +122,7 @@ export default function LoginScreen({ mode, onLogin }: Props) {
       }}>
 
         {/* ヘッダー */}
-        <div style={{ textAlign:"center", marginBottom:32 }}>
+        <div style={{ textAlign:"center", marginBottom:28 }}>
           <div style={{
             display:"inline-flex", alignItems:"center", justifyContent:"center",
             width:60, height:60,
@@ -118,29 +136,27 @@ export default function LoginScreen({ mode, onLogin }: Props) {
           <div style={{
             display:"inline-block", marginTop:10, padding:"4px 14px",
             background: showReset ? "#fff7ed" : "#eff6ff",
-            borderRadius:99,
-            fontSize:11,
+            borderRadius:99, fontSize:11,
             color: showReset ? "#f97316" : "#3b82f6",
             fontWeight:600,
           }}>
             {showReset
-              ? "IDまたはパスワードのリセット"
+              ? resetStep === "email" ? "パスワードをリセット" : "認証コードを入力"
               : mode === "setup" ? "初回アカウント設定" : "ダッシュボードにログイン"
             }
           </div>
         </div>
 
-        {/* ─── リセット完了画面 ─── */}
+        {/* ── リセット完了 ── */}
         {showReset && resetDone ? (
           <div style={{ display:"flex", flexDirection:"column", gap:14, textAlign:"center" }}>
-            <div style={{ fontSize:40 }}>✅</div>
-            <div style={{ fontSize:16, fontWeight:800, color:"#059669" }}>リセット完了</div>
-            <div style={{ fontSize:13, color:"#475569" }}>
-              新しいID: <strong>{newId}</strong><br/>
-              新しいパスワードで再ログインしてください
+            <div style={{ fontSize:48, lineHeight:1 }}>✅</div>
+            <div style={{ fontSize:16, fontWeight:800, color:"#059669" }}>リセット完了！</div>
+            <div style={{ fontSize:13, color:"#475569", lineHeight:1.8 }}>
+              新しいID: <strong>{newId}</strong><br/>で再ログインできます
             </div>
             <button
-              onClick={() => { setShowReset(false); setResetDone(false); setId(newId); setPw(""); setErr(""); }}
+              onClick={() => { setShowReset(false); setResetDone(false); setOtp(""); setId(newId); setPw(""); setErr(""); }}
               className="btn-primary"
               style={{ width:"100%", padding:"13px", fontSize:14, borderRadius:12 }}
             >
@@ -148,17 +164,49 @@ export default function LoginScreen({ mode, onLogin }: Props) {
             </button>
           </div>
 
-        /* ─── リセットフォーム ─── */
-        ) : showReset ? (
+        /* ── リセット Step1: メアド入力 ── */
+        ) : showReset && resetStep === "email" ? (
           <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
-            <div style={{ padding:"10px 14px", background:"#fff7ed", border:"1px solid #fed7aa", borderRadius:10, fontSize:12, color:"#92400e" }}>
-              🔑 Vercel の環境変数 <strong>RESET_SECRET</strong> に設定したキーを入力してください
+            <div style={{ padding:"12px 14px", background:"#f0f9ff", border:"1px solid #bae6fd", borderRadius:10, fontSize:12, color:"#0369a1", lineHeight:1.7 }}>
+              📧 登録済みのメールアドレスに<br/>
+              <strong>6桁の認証コード</strong>を送ります
             </div>
             <div>
-              <label style={{ fontSize:12, color:"#475569", fontWeight:600, display:"block", marginBottom:6 }}>リセットキー</label>
-              <input type="password" value={resetKey} onChange={e => setResetKey(e.target.value)} onKeyDown={handleKeyDown}
-                placeholder="Vercelで設定したRESET_SECRET"
-                className="input-base" style={inputStyle}
+              <label style={{ fontSize:12, color:"#475569", fontWeight:600, display:"block", marginBottom:6 }}>メールアドレス</label>
+              <input type="email" value={resetEmail} onChange={e => setResetEmail(e.target.value)} onKeyDown={handleKeyDown}
+                placeholder="登録済みのメールアドレス"
+                className="input-base" style={inputStyle} autoComplete="email"
+              />
+            </div>
+
+            {err && (
+              <div style={{ padding:"10px 14px", background:"#fef2f2", border:"1px solid #fecaca", borderRadius:10, fontSize:13, color:"#dc2626" }}>
+                ⚠ {err}
+              </div>
+            )}
+
+            <button onClick={handleSendCode} disabled={loading} className="btn-primary"
+              style={{ width:"100%", padding:"13px", fontSize:14, borderRadius:12, opacity:loading?0.7:1, cursor:loading?"not-allowed":"pointer" }}>
+              {loading ? "送信中..." : "認証コードを送信 →"}
+            </button>
+            <button onClick={() => { setShowReset(false); setErr(""); }}
+              style={{ background:"none", border:"none", color:"#94a3b8", fontSize:12, cursor:"pointer", padding:4 }}>
+              ← ログイン画面に戻る
+            </button>
+          </div>
+
+        /* ── リセット Step2: コード + 新ID・PW ── */
+        ) : showReset && resetStep === "code" ? (
+          <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
+            <div style={{ padding:"10px 14px", background:"#f0fdf4", border:"1px solid #bbf7d0", borderRadius:10, fontSize:12, color:"#166534", lineHeight:1.7 }}>
+              ✉ <strong>{resetEmail}</strong> に<br/>認証コードを送りました（15分有効）
+            </div>
+            <div>
+              <label style={{ fontSize:12, color:"#475569", fontWeight:600, display:"block", marginBottom:6 }}>認証コード（6桁）</label>
+              <input type="text" inputMode="numeric" value={otp} onChange={e => setOtp(e.target.value.replace(/\D/g,"").slice(0,6))} onKeyDown={handleKeyDown}
+                placeholder="123456"
+                className="input-base"
+                style={{ ...inputStyle, textAlign:"center", letterSpacing:8, fontSize:22, fontWeight:800 }}
               />
             </div>
             <div>
@@ -176,7 +224,7 @@ export default function LoginScreen({ mode, onLogin }: Props) {
               />
             </div>
             <div>
-              <label style={{ fontSize:12, color:"#475569", fontWeight:600, display:"block", marginBottom:6 }}>パスワード確認</label>
+              <label style={{ fontSize:12, color:"#475569", fontWeight:600, display:"block", marginBottom:6 }}>パスワード（確認）</label>
               <input type="password" value={newPw2} onChange={e => setNewPw2(e.target.value)} onKeyDown={handleKeyDown}
                 placeholder="もう一度入力"
                 className="input-base" style={inputStyle}
@@ -184,22 +232,28 @@ export default function LoginScreen({ mode, onLogin }: Props) {
             </div>
 
             {err && (
-              <div style={{ padding:"10px 14px", background:"#fef2f2", border:"1px solid #fecaca", borderRadius:10, fontSize:13, color:"#dc2626", fontWeight:500 }}>
+              <div style={{ padding:"10px 14px", background:"#fef2f2", border:"1px solid #fecaca", borderRadius:10, fontSize:13, color:"#dc2626" }}>
                 ⚠ {err}
               </div>
             )}
 
-            <button onClick={handleReset} disabled={loading} className="btn-primary"
+            <button onClick={handleConfirmReset} disabled={loading} className="btn-primary"
               style={{ width:"100%", padding:"13px", fontSize:14, borderRadius:12, opacity:loading?0.7:1, cursor:loading?"not-allowed":"pointer" }}>
               {loading ? "処理中..." : "IDとパスワードをリセット"}
             </button>
-            <button onClick={() => { setShowReset(false); setErr(""); }}
-              style={{ background:"none", border:"none", color:"#94a3b8", fontSize:12, cursor:"pointer", padding:4 }}>
-              ← ログイン画面に戻る
-            </button>
+            <div style={{ display:"flex", gap:8 }}>
+              <button onClick={() => { setResetStep("email"); setOtp(""); setErr(""); }}
+                style={{ flex:1, background:"none", border:"none", color:"#94a3b8", fontSize:12, cursor:"pointer", padding:4 }}>
+                ← コードを再送信
+              </button>
+              <button onClick={() => { setShowReset(false); setResetStep("email"); setErr(""); }}
+                style={{ flex:1, background:"none", border:"none", color:"#94a3b8", fontSize:12, cursor:"pointer", padding:4 }}>
+                ログイン画面へ
+              </button>
+            </div>
           </div>
 
-        /* ─── 通常のログイン/セットアップ ─── */
+        /* ── 通常ログイン / 初回セットアップ ── */
         ) : (
           <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
             <div>
@@ -229,7 +283,7 @@ export default function LoginScreen({ mode, onLogin }: Props) {
             </button>
 
             {mode === "login" && (
-              <button onClick={() => { setShowReset(true); setErr(""); }}
+              <button onClick={() => { setShowReset(true); setResetStep("email"); setErr(""); }}
                 style={{ background:"none", border:"none", color:"#94a3b8", fontSize:12, cursor:"pointer", padding:4, textDecoration:"underline" }}>
                 IDまたはパスワードを忘れた方
               </button>
