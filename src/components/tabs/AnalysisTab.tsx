@@ -4,6 +4,7 @@ import SimpleChart from "../ui/SimpleChart";
 import { C, VK, VL, VK_COLORS, CHART_COLORS } from "@/lib/constants";
 import type { ComputedData, Targets, Project } from "@/lib/types";
 import { totalV } from "@/lib/data";
+import { fmt1, fmtPct } from "@/lib/utils";
 
 interface AnalysisTabProps {
   comp: ComputedData;
@@ -14,10 +15,10 @@ interface AnalysisTabProps {
 export default function AnalysisTab({ comp, targets, projects }: AnalysisTabProps) {
   const cf2 = comp.totalF > 0 ? comp.totalF : 2640;
   const scens = [
-    { l:"① P アップ", desc: comp.totalQ>0 ? `単価 ${comp.avgP.toFixed(0)} → ${((cf2+targets.g)/comp.totalQ+comp.avgV).toFixed(0)}万 に上げる` : "—", c:C.blue, icon:"📈" },
-    { l:"② Q アップ", desc: comp.avgM>0 ? `件数 ${comp.totalQ} → ${((cf2+targets.g)/comp.avgM).toFixed(1)}件 に増やす` : "—", c:C.purple, icon:"🔢" },
-    { l:"③ V ダウン", desc: comp.totalQ>0 ? `原価 ${comp.avgV.toFixed(0)} → ${(comp.avgP-(cf2+targets.g)/comp.totalQ).toFixed(0)}万 に下げる` : "—", c:C.green, icon:"🔻" },
-    { l:"④ F ダウン", desc: `固定費 ${cf2} → ${(comp.totalMQ-targets.g).toFixed(0)}万 に削減`, c:C.yellow, icon:"✂️" },
+    { l:"① P アップ", desc: comp.totalQ>0 ? `単価 ${fmt1(comp.avgP)} → ${fmt1((cf2+targets.g)/comp.totalQ+comp.avgV)}万 に上げる` : "—", c:C.blue, icon:"📈" },
+    { l:"② Q アップ", desc: comp.avgM>0 ? `件数 ${comp.totalQ} → ${fmtPct((cf2+targets.g)/comp.avgM)}件 に増やす` : "—", c:C.purple, icon:"🔢" },
+    { l:"③ V ダウン", desc: comp.totalQ>0 ? `原価 ${fmt1(comp.avgV)} → ${fmt1(comp.avgP-(cf2+targets.g)/comp.totalQ)}万 に下げる` : "—", c:C.green, icon:"🔻" },
+    { l:"④ F ダウン", desc: `固定費 ${fmt1(cf2)} → ${fmt1(comp.totalMQ-targets.g)}万 に削減`, c:C.yellow, icon:"✂️" },
   ];
 
   const ranked = projects
@@ -65,7 +66,7 @@ export default function AnalysisTab({ comp, targets, projects }: AnalysisTabProp
             <div key={k} style={{ marginBottom:10 }}>
               <div style={{ display:"flex", justifyContent:"space-between", fontSize:12, marginBottom:4 }}>
                 <span style={{ color:C.t2, fontWeight:500 }}>{VL[k]}</span>
-                <span style={{ color:C.t1, fontWeight:700 }}>{tot.toLocaleString()}万 <span style={{color:C.t3,fontWeight:400}}>({pct.toFixed(1)}%)</span></span>
+                <span style={{ color:C.t1, fontWeight:700 }}>{fmt1(tot)}万 <span style={{color:C.t3,fontWeight:400}}>({fmtPct(pct)}%)</span></span>
               </div>
               <Bar value={tot} max={comp.totalVQ} color={VK_COLORS[k]||C.blue} h={8}/>
             </div>
@@ -98,11 +99,11 @@ export default function AnalysisTab({ comp, targets, projects }: AnalysisTabProp
                   </div>
                   <div>
                     <div style={{ fontSize:10, color:C.t2 }}>PQ</div>
-                    <div style={{ fontSize:14, fontWeight:700, color:C.t1 }}>{spq.toLocaleString()}</div>
+                    <div style={{ fontSize:14, fontWeight:700, color:C.t1 }}>{fmt1(spq)}</div>
                   </div>
                   <div>
                     <div style={{ fontSize:10, color:C.t2 }}>MQ</div>
-                    <div style={{ fontSize:14, fontWeight:700, color:C.green }}>{smq.toLocaleString()}</div>
+                    <div style={{ fontSize:14, fontWeight:700, color:C.green }}>{fmt1(smq)}</div>
                   </div>
                 </div>
               </div>
@@ -135,13 +136,13 @@ export default function AnalysisTab({ comp, targets, projects }: AnalysisTabProp
             }}>{i+1}</div>
             <div style={{ flex:1, minWidth:0 }}>
               <div style={{ fontSize:13, fontWeight:600, color:C.t1, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{p.name}</div>
-              <div style={{ fontSize:10, color:C.t3 }}>P={p.p}万 / M={p.m}万</div>
+              <div style={{ fontSize:10, color:C.t3 }}>P={fmt1(p.p)}万 / 粗利={fmt1(p.m)}万</div>
             </div>
             <div style={{
               padding:"4px 12px", borderRadius:99, fontSize:13, fontWeight:800, flexShrink:0,
               background: p.mr>=48?C.greenLight:p.mr>=40?C.yellowLight:C.redLight,
               color: p.mr>=48?C.greenDark:p.mr>=40?"#92400e":C.red,
-            }}>{p.mr.toFixed(1)}%</div>
+            }}>{fmtPct(p.mr)}%</div>
           </div>
         ))}
       </div>

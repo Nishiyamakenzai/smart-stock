@@ -2,6 +2,14 @@ import type { Project, MonthlyFixed, ComputedData, AIHint, Targets } from "./typ
 import { MS, VK, STC } from "./constants";
 import { totalV, totalF, defaultFixedCosts, PREV } from "./data";
 
+/** 小数点第1位まで表示（末尾の .0 は省略） */
+export const fmt1 = (v: number): string => {
+  const r = Math.round(v * 10) / 10;
+  return r.toLocaleString("ja-JP", { maximumFractionDigits: 1 });
+};
+/** パーセント: 小数点第1位固定 */
+export const fmtPct = (v: number): string => (Math.round(v * 10) / 10).toFixed(1);
+
 export function computeData(projects: Project[], mf: MonthlyFixed): ComputedData {
   const md = MS.map((_, i) => {
     const ps = projects.filter(p => p.month === i);

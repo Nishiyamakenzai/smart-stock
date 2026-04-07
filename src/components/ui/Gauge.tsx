@@ -82,7 +82,7 @@ export default function Gauge({ ratio }: { ratio: number }) {
           <span style={{ fontSize:13, fontWeight:700, color }}>{label}</span>
         </div>
         <div style={{ fontSize:32, fontWeight:900, color, lineHeight:1, letterSpacing:"-0.5px" }}>
-          {ratio.toFixed(1)}<span style={{ fontSize:16, fontWeight:600 }}>%</span>
+          {(Math.round(ratio*10)/10).toFixed(1)}<span style={{ fontSize:16, fontWeight:600 }}>%</span>
         </div>
         <div style={{ fontSize:11, color:"#64748b", marginTop:4 }}>f/m比率（固定費÷粗利）</div>
       </div>

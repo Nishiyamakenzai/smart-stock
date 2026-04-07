@@ -5,6 +5,7 @@ import Gauge from "../ui/Gauge";
 import SimpleChart from "../ui/SimpleChart";
 import { C, CHART_COLORS } from "@/lib/constants";
 import { PREV, PREV2 } from "@/lib/data";
+import { fmt1, fmtPct } from "@/lib/utils";
 import type { ComputedData, Targets, AIHint } from "@/lib/types";
 
 interface DashTabProps {
@@ -53,13 +54,13 @@ export default function DashTab({ comp, targets, aiHints, onOpenFixed }: DashTab
                     fontSize:10, fontWeight:700, padding:"2px 8px",
                     background: achieved ? C.green+"20" : C.red+"15",
                     color: achieved ? C.greenDark : C.red, borderRadius:99,
-                  }}>{achieved ? "✦ 達成" : `残${Math.abs(gap).toLocaleString()}${g.unit}`}</span>
+                  }}>{achieved ? "✦ 達成" : `残${fmt1(Math.abs(gap))}${g.unit}`}</span>
                 </div>
                 <div style={{ fontSize:24, fontWeight:900, color:g.c, lineHeight:1, marginBottom:8 }}>
-                  {g.cur.toLocaleString()}<span style={{ fontSize:11, color:C.t3, marginLeft:2 }}>{g.unit}</span>
+                  {fmt1(g.cur)}<span style={{ fontSize:11, color:C.t3, marginLeft:2 }}>{g.unit}</span>
                 </div>
                 <Bar value={g.cur} max={g.tgt} color={g.c} h={6}/>
-                <div style={{ fontSize:10, color:C.t3, marginTop:4, textAlign:"right" }}>目標: {g.tgt.toLocaleString()}{g.unit}</div>
+                <div style={{ fontSize:10, color:C.t3, marginTop:4, textAlign:"right" }}>目標: {fmt1(g.tgt)}{g.unit}</div>
               </div>
             );
           })}
@@ -102,10 +103,10 @@ export default function DashTab({ comp, targets, aiHints, onOpenFixed }: DashTab
                 return (
                   <tr key={r.l}>
                     <td>{r.l}</td>
-                    <td style={{color:C.t3}}>{r.p2?.toLocaleString() ?? "—"}</td>
-                    <td style={{color:C.t2}}>{r.pv?.toLocaleString() ?? "—"}</td>
-                    <td style={{color:C.blue,fontWeight:800}}>{r.dec!=null?r.cur.toFixed(r.dec):r.cur.toLocaleString()}</td>
-                    <td>{gr!=null&&<span style={{display:"inline-block",padding:"2px 8px",borderRadius:99,fontSize:11,fontWeight:700,background:gr>=0?C.greenLight:C.redLight,color:gr>=0?C.greenDark:C.red}}>{gr>=0?"+":""}{gr.toFixed(1)}%</span>}</td>
+                    <td style={{color:C.t3}}>{r.p2 != null ? fmt1(r.p2) : "—"}</td>
+                    <td style={{color:C.t2}}>{r.pv != null ? fmt1(r.pv) : "—"}</td>
+                    <td style={{color:C.blue,fontWeight:800}}>{fmt1(r.cur)}</td>
+                    <td>{gr!=null&&<span style={{display:"inline-block",padding:"2px 8px",borderRadius:99,fontSize:11,fontWeight:700,background:gr>=0?C.greenLight:C.redLight,color:gr>=0?C.greenDark:C.red}}>{gr>=0?"+":""}{fmtPct(gr)}%</span>}</td>
                   </tr>
                 );
               })}
@@ -123,7 +124,7 @@ export default function DashTab({ comp, targets, aiHints, onOpenFixed }: DashTab
           ].map(it => (
             <div key={it.l} style={{ padding:"16px 14px", borderRadius:14, background:it.grad, color:"#fff", textAlign:"center", boxShadow:"0 4px 12px rgba(0,0,0,.1)" }}>
               <div style={{ fontSize:10, opacity:.8, marginBottom:4, fontWeight:600 }}>{it.l}</div>
-              <div style={{ fontSize:20, fontWeight:900 }}>{it.v.toLocaleString()}<span style={{ fontSize:10, opacity:.75, marginLeft:2 }}>万</span></div>
+              <div style={{ fontSize:20, fontWeight:900 }}>{fmt1(it.v)}<span style={{ fontSize:10, opacity:.75, marginLeft:2 }}>万</span></div>
             </div>
           ))}
         </div>

@@ -3,7 +3,7 @@ import Badge from "../ui/Badge";
 import Bar from "../ui/Bar";
 import SimpleChart from "../ui/SimpleChart";
 import { C, MS, VK, VL, CHART_COLORS } from "@/lib/constants";
-import { aiMonth } from "@/lib/utils";
+import { aiMonth, fmt1, fmtPct } from "@/lib/utils";
 import type { ComputedData } from "@/lib/types";
 
 interface MonthTabProps {
@@ -69,7 +69,7 @@ export default function MonthTab({ comp, selectedMonth, onSelectMonth }: MonthTa
               }}>
                 <div style={{ fontSize:10, opacity:.8, marginBottom:4, fontWeight:600 }}>{k.l}</div>
                 <div style={{ fontSize:22, fontWeight:900 }}>
-                  {k.v.toLocaleString()}<span style={{ fontSize:10, opacity:.75, marginLeft:2 }}>万</span>
+                  {fmt1(k.v)}<span style={{ fontSize:10, opacity:.75, marginLeft:2 }}>万</span>
                 </div>
               </div>
             ))}
@@ -85,7 +85,7 @@ export default function MonthTab({ comp, selectedMonth, onSelectMonth }: MonthTa
                 <div key={k} style={{ marginBottom:8 }}>
                   <div style={{ display:"flex", justifyContent:"space-between", fontSize:11, marginBottom:3 }}>
                     <span style={{ color:C.t2 }}>{VL[k]}</span>
-                    <span style={{ color:C.t1, fontWeight:700 }}>{val}万 <span style={{ color:C.t3, fontWeight:400 }}>({pct.toFixed(0)}%)</span></span>
+                    <span style={{ color:C.t1, fontWeight:700 }}>{fmt1(val)}万 <span style={{ color:C.t3, fontWeight:400 }}>({Math.round(pct)}%)</span></span>
                   </div>
                   <Bar value={val} max={smd.vq} color={C.blue} h={6}/>
                 </div>
@@ -130,12 +130,12 @@ export default function MonthTab({ comp, selectedMonth, onSelectMonth }: MonthTa
                   if ((r as {cfn?:boolean}).cfn) clr = v >= 0 ? C.green : C.red;
                   return (
                     <td key={i} style={{ color:clr, fontWeight:r.b?700:400 }}>
-                      {(r as {fmt?:boolean}).fmt ? v.toFixed(1) : (v===0?<span style={{color:C.t4}}>—</span>:v.toLocaleString())}
+                      {(r as {fmt?:boolean}).fmt ? fmtPct(v) : (v===0?<span style={{color:C.t4}}>—</span>:fmt1(v))}
                     </td>
                   );
                 })}
                 <td style={{ fontWeight:700, color:C.blue, background:C.blueLight }}>
-                  {(r as {fmt?:boolean}).fmt ? r.tot.toFixed(1) : r.tot.toLocaleString()}
+                  {(r as {fmt?:boolean}).fmt ? fmtPct(r.tot) : fmt1(r.tot)}
                 </td>
               </tr>
             ))}

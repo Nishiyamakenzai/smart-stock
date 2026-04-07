@@ -5,7 +5,7 @@ import Badge from "../ui/Badge";
 import NumberInput from "../ui/NumberInput";
 import { C, VK, VL, MS, STC, STCBG } from "@/lib/constants";
 import { newV, totalV } from "@/lib/data";
-import { aiProject } from "@/lib/utils";
+import { aiProject, fmt1, fmtPct } from "@/lib/utils";
 import type { Project } from "@/lib/types";
 
 interface ProjectModalProps {
@@ -67,9 +67,9 @@ export default function ProjectModal({ project, onSave, onClose, onDelete }: Pro
           </div>
           <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8, marginTop:14 }}>
             {[
-              { l:"V合計", v:`${tv}万`, c:C.t1, bg:C.card },
-              { l:"M粗利", v:`${m}万`, c:m>=0?C.greenDark:C.red, bg:m>=0?C.greenLight:C.redLight },
-              { l:"粗利率", v:`${mr.toFixed(1)}%`, c:mr>=48?C.greenDark:mr>=40?"#92400e":C.red, bg:mr>=48?C.greenLight:mr>=40?C.yellowLight:C.redLight },
+              { l:"V合計", v:`${fmt1(tv)}万`, c:C.t1, bg:C.card },
+              { l:"M粗利", v:`${fmt1(m)}万`, c:m>=0?C.greenDark:C.red, bg:m>=0?C.greenLight:C.redLight },
+              { l:"粗利率", v:`${fmtPct(mr)}%`, c:mr>=48?C.greenDark:mr>=40?"#92400e":C.red, bg:mr>=48?C.greenLight:mr>=40?C.yellowLight:C.redLight },
             ].map(k => (
               <div key={k.l} style={{ textAlign:"center", padding:"10px 8px", background:k.bg, borderRadius:10 }}>
                 <div style={{ fontSize:10, color:C.t2, marginBottom:4 }}>{k.l}</div>

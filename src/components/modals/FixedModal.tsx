@@ -3,7 +3,8 @@ import { useState } from "react";
 import Modal from "./Modal";
 import NumberInput from "../ui/NumberInput";
 import { C, MS, FL1, FL2, FL3, FL4, FL5 } from "@/lib/constants";
-import { defaultFixedCosts } from "@/lib/data";
+import { defaultFixedCosts, migrateMF, migrateAB } from "@/lib/data";
+import { fmt1 } from "@/lib/utils";
 import type { MonthlyFixed, AnnualBudget, FixedCosts, F1Items, F2Items, F3Items, F4Items, F5Items } from "@/lib/types";
 
 type FKey = "f1" | "f2" | "f3" | "f4" | "f5";
@@ -36,8 +37,9 @@ interface Props {
 }
 
 export default function FixedModal({ mfData, abData, onSave, onClose }: Props) {
-  const [mf2, setMf2] = useState<MonthlyFixed>(() => JSON.parse(JSON.stringify(mfData)));
-  const [ab2, setAb2] = useState<AnnualBudget>(() => JSON.parse(JSON.stringify(abData)));
+  // 防御的マイグレーション: 旧形式データ(number)を新形式(object)に変換
+  const [mf2, setMf2] = useState<MonthlyFixed>(() => migrateMF(JSON.parse(JSON.stringify(mfData))));
+  const [ab2, setAb2] = useState<AnnualBudget>(() => migrateAB(JSON.parse(JSON.stringify(abData))));
   const [mode, setMode] = useState<"monthly" | "annual">("monthly");
   const [em, setEm] = useState(0);
   const [open, setOpen] = useState<FKey | null>("f1");
@@ -144,11 +146,11 @@ export default function FixedModal({ mfData, abData, onSave, onClose }: Props) {
                     fontSize:11, fontWeight:700, flexShrink:0,
                   }}>{sec.label}</span>
                   <span style={{ fontSize:14, fontWeight:800, color: sec.color }}>
-                    {total.toLocaleString()}万
+                    {fmt1(total)}万
                   </span>
                   {mode === "annual" && total > 0 && (
                     <span style={{ fontSize:11, color:C.t3 }}>
-                      → {Math.round(total / 12)}万/月
+                      → {fmt1(Math.round(total / 12))}万/月
                     </span>
                   )}
                 </div>
@@ -201,8 +203,8 @@ export default function FixedModal({ mfData, abData, onSave, onClose }: Props) {
                     display:"flex", justifyContent:"flex-end", gap:12,
                     fontSize:12, fontWeight:700, color:sec.color,
                   }}>
-                    <span>小計: {total.toLocaleString()}万{mode === "annual" ? "/年" : "/月"}</span>
-                    {mode === "annual" && <span>（{Math.round(total / 12)}万/月）</span>}
+                    <span>小計: {fmt1(total)}万{mode === "annual" ? "/年" : "/月"}</span>
+                    {mode === "annual" && <span>（{fmt1(Math.round(total / 12))}万/月）</span>}
                   </div>
                 </div>
               )}

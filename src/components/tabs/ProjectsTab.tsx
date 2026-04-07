@@ -1,6 +1,7 @@
 "use client";
 import { C, MS, VK, VL, STC, STCBG } from "@/lib/constants";
 import { totalV } from "@/lib/data";
+import { fmt1, fmtPct } from "@/lib/utils";
 import type { Project } from "@/lib/types";
 
 interface ProjectsTabProps {
@@ -83,16 +84,19 @@ export default function ProjectsTab({ projects, filterMonth, onFilterMonth, onNe
                   </div>
                 </div>
                 <div style={{ textAlign:"right", flexShrink:0 }}>
-                  <div style={{ fontSize:10, color:C.t3, marginBottom:4 }}>P={p.p} / V={tv}</div>
-                  <div style={{ fontSize:20, fontWeight:900, color:C.blue, lineHeight:1 }}>
-                    M={m}<span style={{ fontSize:10, color:C.t3 }}>万</span>
+                  <div style={{ fontSize:10, color:C.t3, marginBottom:2 }}>
+                    P={fmt1(p.p)}万 / V={fmt1(tv)}万
+                  </div>
+                  <div style={{ fontSize:10, color:C.t3, marginBottom:4 }}>粗利</div>
+                  <div style={{ fontSize:22, fontWeight:900, color:m>=0?C.green:C.red, lineHeight:1 }}>
+                    {fmt1(m)}<span style={{ fontSize:10, color:C.t3, marginLeft:1 }}>万</span>
                   </div>
                   <div style={{
                     display:"inline-block", marginTop:4, padding:"3px 10px",
                     borderRadius:99, fontSize:12, fontWeight:700,
                     background: mr>=48?C.greenLight:mr>=40?C.yellowLight:C.redLight,
                     color: mr>=48?C.greenDark:mr>=40?"#92400e":C.red,
-                  }}>{mr.toFixed(1)}%</div>
+                  }}>{fmtPct(mr)}%</div>
                 </div>
               </div>
             </div>

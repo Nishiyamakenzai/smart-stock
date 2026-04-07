@@ -1,6 +1,7 @@
 "use client";
 import Bar from "./ui/Bar";
 import { C, STC, STCBG } from "@/lib/constants";
+import { fmt1 } from "@/lib/utils";
 import type { ComputedData, Targets } from "@/lib/types";
 
 interface HeaderProps {
@@ -20,10 +21,10 @@ const KPI_STYLES = [
 
 export default function Header({ comp, targets, onOpenTargets, onOpenBS, onLogout }: HeaderProps) {
   const kpis = [
-    { l:"PQ 売上",  v:comp.totalPQ, t:targets.pq, u:"万", fmt: (v:number) => v.toLocaleString() },
-    { l:"MQ 粗利",  v:comp.totalMQ, t:targets.mq, u:"万", fmt: (v:number) => v.toLocaleString() },
-    { l:"G 利益",   v:comp.totalG,  t:targets.g,  u:"万", fmt: (v:number) => v.toLocaleString() },
-    { l:"Q 件数",   v:comp.totalQ,  t:targets.q,  u:"件", fmt: (v:number) => String(v) },
+    { l:"PQ 売上",  v:comp.totalPQ, t:targets.pq, u:"万", fmt: (v:number) => fmt1(v) },
+    { l:"MQ 粗利",  v:comp.totalMQ, t:targets.mq, u:"万", fmt: (v:number) => fmt1(v) },
+    { l:"G 利益",   v:comp.totalG,  t:targets.g,  u:"万", fmt: (v:number) => fmt1(v) },
+    { l:"Q 件数",   v:comp.totalQ,  t:targets.q,  u:"件", fmt: (v:number) => String(Math.round(v)) },
   ];
 
   return (
@@ -84,8 +85,8 @@ export default function Header({ comp, targets, onOpenTargets, onOpenBS, onLogou
                   }}/>
                 </div>
                 <div style={{ display:"flex", justifyContent:"space-between", fontSize:9, marginTop:3, color:"rgba(255,255,255,.55)" }}>
-                  <span>{isAchieved ? "✦ 達成！" : `${pct.toFixed(0)}%`}</span>
-                  <span>/{k.t.toLocaleString()}{k.u}</span>
+                  <span>{isAchieved ? "✦ 達成！" : `${Math.round(pct)}%`}</span>
+                  <span>/{fmt1(k.t)}{k.u}</span>
                 </div>
               </div>
             </div>
@@ -115,7 +116,7 @@ export default function Header({ comp, targets, onOpenTargets, onOpenBS, onLogou
             </div>
             <div style={{ fontSize:20, fontWeight:800, color:"#fff", lineHeight:1 }}>{cnt}</div>
             <div style={{ fontSize:9, color:"rgba(255,255,255,.4)", marginTop:2 }}>
-              {(comp.pipeA[st]||0).toLocaleString()}万
+              {fmt1(comp.pipeA[st]||0)}万
             </div>
           </div>
         ))}
