@@ -1,4 +1,5 @@
 import { getSupabase } from '@/lib/supabase';
+import { sendPushToMembers } from '@/lib/push';
 import type { NextRequest } from 'next/server';
 
 type Ctx = { params: Promise<{ id: string }> };
@@ -10,19 +11,6 @@ const MEMBER_SELECT = `
   created_by_member:members!tasks_created_by_fkey(id,name,color,role),
   next_assignee:members!tasks_next_assignee_id_fkey(id,name,color,role)
 `;
-
-async function sendNotify(member_ids: (string | null)[], title: string, body: string, url: string) {
-  const ids = member_ids.filter(Boolean) as string[];
-  if (!ids.length) return;
-  const base = process.env.VERCEL_URL
-    ? `https://${process.env.VERCEL_URL}`
-    : 'http://localhost:3000';
-  await fetch(`${base}/api/push/notify`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ member_ids: ids, title, body, url }),
-  }).catch(() => {});
-}
 
 export async function GET(_req: NextRequest, { params }: Ctx) {
   const { id } = await params;
@@ -63,24 +51,25 @@ export async function PUT(request: NextRequest, { params }: Ctx) {
   if (logs.length === 0) logs.push({ task_id: id, action: 'edited', changed_by });
   if (logs.length > 0) await sb.from('task_logs').insert(logs);
 
-  // 通知: 確認待ちになったらレビュアーに通知
+  // 確認待ちになったらレビュアーに通知
   if (fields.status === '確認待ち' && old?.status !== '確認待ち' && old?.reviewer_id && old.reviewer_id !== changed_by) {
     const changerName = task.assignee?.name ?? task.created_by_member?.name ?? '担当者';
-    await sendNotify(
+    sendPushToMembers(
       [old.reviewer_id],
       '👆 確認依頼が届きました',
       `${changerName}さんから「${old.title ?? task.title}」の確認依頼です`,
       `/tasks/${id}`
-    );
+    ).catch(e => console.error('[tasks/PUT 確認待ち push]', e));
   }
-  // 通知: 担当者が変わったら新担当者に通知
+
+  // 担当者が変わったら新担当者に通知
   if (fields.assignee_id && fields.assignee_id !== old?.assignee_id && fields.assignee_id !== changed_by) {
-    await sendNotify(
+    sendPushToMembers(
       [fields.assignee_id],
       '📋 タスクが割り当てられました',
       `「${task.title}」の担当者になりました`,
       `/tasks/${id}`
-    );
+    ).catch(e => console.error('[tasks/PUT 担当変更 push]', e));
   }
 
   // 完了後の次タスク自動生成
@@ -107,14 +96,13 @@ export async function PUT(request: NextRequest, { params }: Ctx) {
         new_value: `「${old?.title}」完了後に自動生成`,
         changed_by: changed_by ?? old?.assignee_id,
       });
-      // 次タスクの担当者に通知
       if (created.assignee_id && created.assignee_id !== changed_by) {
-        await sendNotify(
+        sendPushToMembers(
           [created.assignee_id],
           '🔗 次のタスクが届きました',
           `「${old?.title}」が完了し、あなたのタスク「${src.next_task_title}」が作成されました`,
           `/tasks/${created.id}`
-        );
+        ).catch(e => console.error('[tasks/PUT nextTask push]', e));
       }
     }
   }

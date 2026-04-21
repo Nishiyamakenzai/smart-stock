@@ -1,4 +1,5 @@
 import { getSupabase } from '@/lib/supabase';
+import { sendPushToMembers } from '@/lib/push';
 
 const MEMBER_SELECT = `
   *,
@@ -7,19 +8,6 @@ const MEMBER_SELECT = `
   created_by_member:members!tasks_created_by_fkey(id,name,color,role),
   next_assignee:members!tasks_next_assignee_id_fkey(id,name,color,role)
 `;
-
-async function sendNotify(member_ids: (string | null)[], title: string, body: string, url: string) {
-  const ids = member_ids.filter(Boolean) as string[];
-  if (!ids.length) return;
-  const base = process.env.VERCEL_URL
-    ? `https://${process.env.VERCEL_URL}`
-    : 'http://localhost:3000';
-  await fetch(`${base}/api/push/notify`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ member_ids: ids, title, body, url }),
-  }).catch(() => {});
-}
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -84,16 +72,16 @@ export async function POST(request: Request) {
     changed_by: created_by,
   });
 
-  // 担当者に通知（登録者以外）
-  const notifyIds = [assignee_id, reviewer_id].filter(id => id && id !== created_by);
+  // 担当者・レビュアーに通知（登録者以外）
+  const notifyIds = [assignee_id, reviewer_id].filter((id): id is string => Boolean(id) && id !== created_by);
   if (notifyIds.length > 0) {
     const creatorName = task.created_by_member?.name ?? '誰か';
-    await sendNotify(
+    sendPushToMembers(
       notifyIds,
       '📋 新しいタスク',
       `${creatorName}さんが「${title}」を登録しました`,
       `/tasks/${task.id}`
-    );
+    ).catch(e => console.error('[tasks/POST push]', e));
   }
 
   return Response.json(task, { status: 201 });
