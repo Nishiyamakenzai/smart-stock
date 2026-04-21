@@ -8,6 +8,19 @@ const MEMBER_SELECT = `
   next_assignee:members!tasks_next_assignee_id_fkey(id,name,color,role)
 `;
 
+async function sendNotify(member_ids: (string | null)[], title: string, body: string, url: string) {
+  const ids = member_ids.filter(Boolean) as string[];
+  if (!ids.length) return;
+  const base = process.env.VERCEL_URL
+    ? `https://${process.env.VERCEL_URL}`
+    : 'http://localhost:3000';
+  await fetch(`${base}/api/push/notify`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ member_ids: ids, title, body, url }),
+  }).catch(() => {});
+}
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const assignee = searchParams.get('assignee');
@@ -15,11 +28,7 @@ export async function GET(request: Request) {
   const status = searchParams.get('status');
 
   const sb = getSupabase();
-  let query = sb
-    .from('tasks')
-    .select(MEMBER_SELECT)
-    .order('priority', { ascending: true })   // 緊急→高→普通→低
-    .order('created_at', { ascending: false });
+  let query = sb.from('tasks').select(MEMBER_SELECT).order('created_at', { ascending: false });
 
   if (assignee) query = query.eq('assignee_id', assignee);
   if (reviewer) query = query.eq('reviewer_id', reviewer);
@@ -28,9 +37,10 @@ export async function GET(request: Request) {
   const { data, error } = await query;
   if (error) return Response.json({ error: error.message }, { status: 500 });
 
-  // 優先度でソート（緊急→高→普通→低）
   const PRIORITY_ORDER = ['緊急', '高', '普通', '低'];
   const sorted = (data ?? []).sort((a, b) => {
+    if (a.status === '完了' && b.status !== '完了') return 1;
+    if (a.status !== '完了' && b.status === '完了') return -1;
     const pa = PRIORITY_ORDER.indexOf(a.priority);
     const pb = PRIORITY_ORDER.indexOf(b.priority);
     if (pa !== pb) return pa - pb;
@@ -73,6 +83,18 @@ export async function POST(request: Request) {
     new_value: title,
     changed_by: created_by,
   });
+
+  // 担当者に通知（登録者以外）
+  const notifyIds = [assignee_id, reviewer_id].filter(id => id && id !== created_by);
+  if (notifyIds.length > 0) {
+    const creatorName = task.created_by_member?.name ?? '誰か';
+    await sendNotify(
+      notifyIds,
+      '📋 新しいタスク',
+      `${creatorName}さんが「${title}」を登録しました`,
+      `/tasks/${task.id}`
+    );
+  }
 
   return Response.json(task, { status: 201 });
 }
