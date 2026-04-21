@@ -27,9 +27,14 @@ export interface Task {
   created_by: string | null;
   created_at: string;
   updated_at: string;
+  // 完了後の次アクション
+  next_assignee_id: string | null;
+  next_task_title: string | null;
+  next_task_auto: boolean;
   assignee?: Member;
   reviewer?: Member;
   created_by_member?: Member;
+  next_assignee?: Member;
 }
 
 export interface TaskLog {

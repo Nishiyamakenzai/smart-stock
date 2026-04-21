@@ -48,7 +48,7 @@ export default function MyTasksPage() {
   }, [hydrated, currentUserId, fetchMyTasks]);
 
   const handleStatusChange = async (id: string, status: TaskStatus) => {
-    await fetch(`/api/tasks/${id}`, {
+    const res = await fetch(`/api/tasks/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status, changed_by: currentUserId }),
@@ -56,10 +56,14 @@ export default function MyTasksPage() {
     setTodoTasks(prev => prev.filter(t => t.id !== id || status === '保留'));
     if (status === '完了') setReviewTasks(prev => prev.filter(t => t.id !== id));
     showToast(`ステータスを「${status}」に変更`);
+    if (res.ok) {
+      const { nextTask } = await res.json();
+      if (nextTask) showToast(`💡 ${nextTask.assignee?.name ?? '次の担当者'} へのタスクを自動作成しました`);
+    }
   };
 
   const handleApprove = async (id: string) => {
-    await fetch(`/api/tasks/${id}`, {
+    const res = await fetch(`/api/tasks/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status: '完了', changed_by: currentUserId }),
@@ -67,6 +71,10 @@ export default function MyTasksPage() {
     setReviewTasks(prev => prev.filter(t => t.id !== id));
     showToast('確認完了！タスクが完了しました ✓');
     if (typeof window !== 'undefined' && window.navigator.vibrate) window.navigator.vibrate([50, 30, 50]);
+    if (res.ok) {
+      const { nextTask } = await res.json();
+      if (nextTask) showToast(`💡 ${nextTask.assignee?.name ?? '次の担当者'} へのタスクを自動作成しました`);
+    }
   };
 
   const handleDelete = async () => {
