@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect, useCallback } from 'react';
+import Link from 'next/link';
 import { Member } from '@/lib/task-types';
 import { useToast } from '@/components/tasks/Toast';
 import ConfirmDialog from '@/components/tasks/ConfirmDialog';
@@ -85,7 +86,10 @@ export default function MembersSettingsPage() {
     <>
       {/* Header */}
       <div style={{ background: '#fff', borderBottom: '1px solid #E2E8F0', padding: '14px 16px', position: 'sticky', top: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <h1 style={{ fontSize: 18, fontWeight: 700, color: '#1E293B' }}>⚙️ メンバー管理</h1>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <Link href="/tasks/settings" style={{ textDecoration: 'none', color: '#2563EB', fontSize: 22, lineHeight: 1 }}>‹</Link>
+          <h1 style={{ fontSize: 18, fontWeight: 700, color: '#1E293B', margin: 0 }}>👥 メンバー管理</h1>
+        </div>
         <button
           onClick={() => { resetForm(); setShowForm(!showForm); }}
           style={{ padding: '8px 16px', borderRadius: 10, border: 'none', background: '#2563EB', color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}

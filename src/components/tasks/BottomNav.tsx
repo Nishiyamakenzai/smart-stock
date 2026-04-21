@@ -8,7 +8,7 @@ export default function BottomNav() {
   const items = [
     { href: '/tasks', icon: '📋', label: '全体' },
     { href: '/tasks/my', icon: '👤', label: '自分' },
-    { href: '/tasks/settings/members', icon: '⚙️', label: '設定' },
+    { href: '/tasks/settings', icon: '⚙️', label: '設定' },
   ];
 
   return (
