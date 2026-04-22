@@ -43,6 +43,7 @@ export async function POST(request: Request) {
   const {
     title, assignee_id, reviewer_id, status, priority,
     due_date, note, category, created_by,
+    next_tasks,
     next_assignee_id, next_task_title, next_task_auto,
   } = body;
 
@@ -56,9 +57,10 @@ export async function POST(request: Request) {
       status: status || '未対応',
       priority: priority || '普通',
       due_date, note, category, created_by,
+      next_tasks: next_tasks ?? null,
+      next_task_auto: next_task_auto || false,
       next_assignee_id: next_assignee_id || null,
       next_task_title: next_task_title || null,
-      next_task_auto: next_task_auto || false,
     })
     .select(MEMBER_SELECT)
     .single();

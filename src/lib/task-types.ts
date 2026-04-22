@@ -12,6 +12,11 @@ export interface Member {
   created_at: string;
 }
 
+export interface NextTaskItem {
+  assignee_id: string;
+  title: string;
+}
+
 export interface Task {
   id: string;
   task_number: number;
@@ -27,10 +32,12 @@ export interface Task {
   created_by: string | null;
   created_at: string;
   updated_at: string;
-  // 完了後の次アクション
+  // 完了後の次アクション（複数対応）
+  next_tasks: NextTaskItem[] | null;
+  next_task_auto: boolean;
+  // 旧フィールド（後方互換）
   next_assignee_id: string | null;
   next_task_title: string | null;
-  next_task_auto: boolean;
   assignee?: Member;
   reviewer?: Member;
   created_by_member?: Member;

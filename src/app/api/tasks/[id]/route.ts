@@ -73,41 +73,73 @@ export async function PUT(request: NextRequest, { params }: Ctx) {
   }
 
   // 完了後の次タスク自動生成
-  let nextTask = null;
+  const nextTasks: unknown[] = [];
   const src = fields.next_task_auto !== undefined ? fields : old;
-  if (
-    fields.status === '完了' && old?.status !== '完了' &&
-    src?.next_task_auto && src?.next_assignee_id && src?.next_task_title
-  ) {
-    const { data: created } = await sb.from('tasks').insert({
-      title: src.next_task_title,
-      assignee_id: src.next_assignee_id,
-      status: '未対応',
-      priority: old?.priority ?? '普通',
-      created_by: changed_by ?? old?.assignee_id,
-      note: `「#${old?.task_number} ${old?.title}」完了後に自動生成`,
-    }).select(MEMBER_SELECT).single();
 
-    if (created) {
-      nextTask = created;
-      await sb.from('task_logs').insert({
-        task_id: created.id,
-        action: 'created',
-        new_value: `「${old?.title}」完了後に自動生成`,
-        changed_by: changed_by ?? old?.assignee_id,
-      });
-      if (created.assignee_id && created.assignee_id !== changed_by) {
-        sendPushToMembers(
-          [created.assignee_id],
-          '🔗 次のタスクが届きました',
-          `「${old?.title}」が完了し、あなたのタスク「${src.next_task_title}」が作成されました`,
-          `/tasks/${created.id}`
-        ).catch(e => console.error('[tasks/PUT nextTask push]', e));
+  if (fields.status === '完了' && old?.status !== '完了' && src?.next_task_auto) {
+    const notePrefix = `「#${old?.task_number} ${old?.title}」完了後に自動生成`;
+    const creatorId = changed_by ?? old?.assignee_id;
+
+    // 新方式: next_tasks 配列
+    const nextItems: Array<{ assignee_id: string; title: string }> = src?.next_tasks ?? [];
+    for (const item of nextItems) {
+      if (!item.assignee_id || !item.title) continue;
+      const { data: created } = await sb.from('tasks').insert({
+        title: item.title,
+        assignee_id: item.assignee_id,
+        status: '未対応',
+        priority: old?.priority ?? '普通',
+        created_by: creatorId,
+        note: notePrefix,
+      }).select(MEMBER_SELECT).single();
+
+      if (created) {
+        nextTasks.push(created);
+        await sb.from('task_logs').insert({
+          task_id: created.id, action: 'created',
+          new_value: notePrefix, changed_by: creatorId,
+        });
+        if (created.assignee_id && created.assignee_id !== changed_by) {
+          sendPushToMembers(
+            [created.assignee_id],
+            '🔗 次のタスクが届きました',
+            `「${old?.title}」が完了し、あなたのタスク「${item.title}」が作成されました`,
+            `/tasks/${created.id}`
+          ).catch(e => console.error('[tasks/PUT nextTasks push]', e));
+        }
+      }
+    }
+
+    // 旧方式: next_assignee_id / next_task_title（後方互換）
+    if (nextItems.length === 0 && src?.next_assignee_id && src?.next_task_title) {
+      const { data: created } = await sb.from('tasks').insert({
+        title: src.next_task_title,
+        assignee_id: src.next_assignee_id,
+        status: '未対応',
+        priority: old?.priority ?? '普通',
+        created_by: creatorId,
+        note: notePrefix,
+      }).select(MEMBER_SELECT).single();
+
+      if (created) {
+        nextTasks.push(created);
+        await sb.from('task_logs').insert({
+          task_id: created.id, action: 'created',
+          new_value: notePrefix, changed_by: creatorId,
+        });
+        if (created.assignee_id && created.assignee_id !== changed_by) {
+          sendPushToMembers(
+            [created.assignee_id],
+            '🔗 次のタスクが届きました',
+            `「${old?.title}」が完了し、あなたのタスク「${src.next_task_title}」が作成されました`,
+            `/tasks/${created.id}`
+          ).catch(e => console.error('[tasks/PUT nextTask push]', e));
+        }
       }
     }
   }
 
-  return Response.json({ task, nextTask });
+  return Response.json({ task, nextTask: nextTasks[0] ?? null, nextTasks });
 }
 
 export async function DELETE(_req: NextRequest, { params }: Ctx) {
