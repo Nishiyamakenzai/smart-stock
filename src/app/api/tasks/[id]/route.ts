@@ -62,6 +62,22 @@ export async function PUT(request: NextRequest, { params }: Ctx) {
     ).catch(e => console.error('[tasks/PUT 確認待ち push]', e));
   }
 
+  // 完了したら作成者・レビュアーに通知（本人以外）
+  if (fields.status === '完了' && old?.status !== '完了') {
+    const completerName = task.assignee?.name ?? '担当者';
+    const notifyIds = [old?.created_by, old?.reviewer_id].filter(
+      (mid): mid is string => Boolean(mid) && mid !== changed_by
+    );
+    if (notifyIds.length > 0) {
+      sendPushToMembers(
+        notifyIds,
+        '✅ タスクが完了しました',
+        `${completerName}さんが「${task.title}」を完了しました`,
+        `/tasks/${id}`
+      ).catch(e => console.error('[tasks/PUT 完了 push]', e));
+    }
+  }
+
   // 担当者が変わったら新担当者に通知
   if (fields.assignee_id && fields.assignee_id !== old?.assignee_id && fields.assignee_id !== changed_by) {
     sendPushToMembers(
