@@ -413,8 +413,8 @@ export default function TasksDashboard() {
         <TaskForm
           members={members}
           currentUserId={currentUserId ?? ''}
-          onSuccess={(newTask) => {
-            if (newTask) setTasks(prev => [newTask, ...prev]);
+          onSuccess={() => {
+            fetchTasks();
             setShowForm(false);
           }}
         />
