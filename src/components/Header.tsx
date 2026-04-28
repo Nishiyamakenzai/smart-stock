@@ -59,7 +59,7 @@ export default function Header({ comp, targets, onOpenTargets, onOpenBS, onLogou
               transition:"background .15s",
             }}>{btn.label}</button>
           ))}
-          <a href="/inventory" style={{
+          <a href="https://paint-inventory-git-paint-inventory-nishiyamakenzais-projects.vercel.app/" target="_blank" rel="noopener noreferrer" style={{
             padding:"6px 12px",
             background:"rgba(255,255,255,.15)",
             border:"1px solid rgba(255,255,255,.25)",
