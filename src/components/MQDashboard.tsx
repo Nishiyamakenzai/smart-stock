@@ -25,6 +25,9 @@ export default function MQDashboard({ onLogout }: { onLogout: () => void }) {
   const [targets, setTargets] = useState<Targets>(DEFAULT_TARGETS);
   const [bs, setBs] = useState<BSData>(DEFAULT_BS);
   const [dataLoaded, setDataLoaded] = useState(false);
+  const [loadError, setLoadError] = useState(false);
+  // saveEnabled は DB からの正常ロード後のみ true にする（エラー時に初期デモデータを上書き保存しないための安全弁）
+  const [saveEnabled, setSaveEnabled] = useState(false);
 
   // UI状態
   const [tab, setTab] = useState<Tab>("dash");
@@ -36,19 +39,31 @@ export default function MQDashboard({ onLogout }: { onLogout: () => void }) {
   const [filterMonth, setFilterMonth] = useState<number | null>(null);
 
   // ── データ読み込み（マウント時に1回だけ） ──────────────────
-  useEffect(() => {
+  const loadData = useCallback(() => {
+    setDataLoaded(false);
+    setLoadError(false);
     fetch("/api/data")
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
       .then((d) => {
         if (d["mq-projects"]) setProjects(d["mq-projects"]);
         if (d["mq-mf"])       setMf(migrateMF(d["mq-mf"]));
         if (d["mq-ab"])       setAb(migrateAB(d["mq-ab"]));
         if (d["mq-targets"])  setTargets(d["mq-targets"]);
         if (d["mq-bs"])       setBs(d["mq-bs"]);
+        // DB から正常に取得できた場合のみ保存を有効化
+        setSaveEnabled(true);
       })
-      .catch(console.error)
+      .catch((e) => {
+        console.error("データ読み込み失敗:", e);
+        setLoadError(true);
+      })
       .finally(() => setDataLoaded(true));
   }, []);
+
+  useEffect(() => { loadData(); }, [loadData]);
 
   // ── デバウンス自動保存（変更から1.5秒後にAPI保存） ────────
   const saveTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
@@ -64,12 +79,12 @@ export default function MQDashboard({ onLogout }: { onLogout: () => void }) {
     }, 1500);
   }, []);
 
-  // データ読み込み後のみ保存を有効化（初期値でDBを上書きしない）
-  useEffect(() => { if (dataLoaded) debouncedSave("mq-projects", projects); }, [projects, dataLoaded, debouncedSave]);
-  useEffect(() => { if (dataLoaded) debouncedSave("mq-mf", mf); },           [mf, dataLoaded, debouncedSave]);
-  useEffect(() => { if (dataLoaded) debouncedSave("mq-ab", ab); },            [ab, dataLoaded, debouncedSave]);
-  useEffect(() => { if (dataLoaded) debouncedSave("mq-targets", targets); },  [targets, dataLoaded, debouncedSave]);
-  useEffect(() => { if (dataLoaded) debouncedSave("mq-bs", bs); },            [bs, dataLoaded, debouncedSave]);
+  // DB から正常ロードできた場合のみ保存を有効化（saveEnabled が false の間は絶対に保存しない）
+  useEffect(() => { if (saveEnabled) debouncedSave("mq-projects", projects); }, [projects, saveEnabled, debouncedSave]);
+  useEffect(() => { if (saveEnabled) debouncedSave("mq-mf", mf); },           [mf, saveEnabled, debouncedSave]);
+  useEffect(() => { if (saveEnabled) debouncedSave("mq-ab", ab); },            [ab, saveEnabled, debouncedSave]);
+  useEffect(() => { if (saveEnabled) debouncedSave("mq-targets", targets); },  [targets, saveEnabled, debouncedSave]);
+  useEffect(() => { if (saveEnabled) debouncedSave("mq-bs", bs); },            [bs, saveEnabled, debouncedSave]);
 
   // ── 計算 ──────────────────────────────────────────────────
   const comp = useMemo(() => computeData(projects, mf), [projects, mf]);
@@ -94,6 +109,35 @@ export default function MQDashboard({ onLogout }: { onLogout: () => void }) {
           animation: "spin 0.8s linear infinite",
         }} />
         <p style={{ color: "#94a3b8", fontSize: 13, fontWeight: 500 }}>データを読み込み中...</p>
+      </div>
+    );
+  }
+
+  // ── データ読み込みエラー（保存は絶対に行わない） ─────────
+  if (loadError) {
+    return (
+      <div style={{
+        minHeight: "100vh", background: "#f0f4f8",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        flexDirection: "column", gap: 16,
+      }}>
+        <div style={{ fontSize: 32 }}>⚠️</div>
+        <p style={{ color: "#ef4444", fontSize: 15, fontWeight: 600, margin: 0 }}>
+          データの読み込みに失敗しました
+        </p>
+        <p style={{ color: "#94a3b8", fontSize: 13, margin: 0 }}>
+          ネットワーク接続を確認して再試行してください
+        </p>
+        <button
+          onClick={loadData}
+          style={{
+            marginTop: 8, padding: "10px 24px", background: "#3b82f6",
+            color: "#fff", border: "none", borderRadius: 8,
+            fontSize: 14, fontWeight: 600, cursor: "pointer",
+          }}
+        >
+          再試行
+        </button>
       </div>
     );
   }
