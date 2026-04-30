@@ -118,7 +118,7 @@ export default function MyTasksPage() {
       {/* Header */}
       <div style={{ background: '#fff', borderBottom: '1px solid #E2E8F0', padding: '14px 16px 0', position: 'sticky', top: 0, zIndex: 50 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-          <h1 style={{ fontSize: 18, fontWeight: 700, color: '#1E293B' }}>👤 マイタスク</h1>
+          <h1 style={{ fontSize: 18, fontWeight: 700, color: '#1E3A6E' }}>👤 マイタスク</h1>
           {currentMember && (
             <span style={{ fontSize: 13, fontWeight: 600, color: currentMember.color, background: currentMember.color + '22', padding: '3px 10px', borderRadius: 99 }}>
               {currentMember.name}

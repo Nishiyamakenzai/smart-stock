@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <!-- Left arc (navy blue) -->
+  <path d="M 60 40 A 50 50 0 1 0 40 100" fill="none" stroke="#1E3A6E" stroke-width="14" stroke-linecap="round"/>
+  <!-- Arrow head for left arc -->
+  <polygon points="40,100 28,82 52,82" fill="#1E3A6E" transform="rotate(-10, 40, 100)"/>
+
+  <!-- Right arc (orange) -->
+  <path d="M 140 160 A 50 50 0 1 0 160 100" fill="none" stroke="#C25A2A" stroke-width="14" stroke-linecap="round"/>
+  <!-- Arrow head for right arc -->
+  <polygon points="160,100 148,118 172,118" fill="#C25A2A" transform="rotate(-10, 160, 100)"/>
+
+  <!-- T letter (navy) -->
+  <text x="72" y="115" font-family="Georgia, serif" font-size="52" font-style="italic" font-weight="bold" fill="#1E3A6E">T</text>
+
+  <!-- S letter (orange) -->
+  <text x="108" y="115" font-family="Georgia, serif" font-size="52" font-style="italic" font-weight="bold" fill="#C25A2A">S</text>
+</svg>

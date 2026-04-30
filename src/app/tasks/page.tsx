@@ -12,8 +12,9 @@ import { useToast } from '@/components/tasks/Toast';
 function MemberSelect({ members, onSelect }: { members: Member[]; onSelect: (id: string) => void }) {
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'linear-gradient(135deg,#EFF6FF,#F8FAFC)', zIndex: 9999, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24, overflowY: 'auto' }}>
-      <div style={{ fontSize: 52, marginBottom: 8 }}>👷</div>
-      <h1 style={{ fontSize: 22, fontWeight: 800, color: '#1E293B', marginBottom: 4, textAlign: 'center' }}>西山建材 タスク管理</h1>
+      <img src="/tasuki-logo.svg" alt="TASUKI" style={{ width: 80, height: 80, marginBottom: 8 }} />
+      <h1 style={{ fontSize: 26, fontWeight: 800, color: '#1E3A6E', marginBottom: 2, textAlign: 'center', letterSpacing: 3 }}>TASUKI</h1>
+      <p style={{ fontSize: 12, color: '#94A3B8', marginBottom: 8, textAlign: 'center' }}>タスクを繋ぐ</p>
       <p style={{ fontSize: 14, color: '#64748B', marginBottom: 32, textAlign: 'center' }}>あなたは誰ですか？</p>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: '100%', maxWidth: 320 }}>
         {members.map(m => (
@@ -299,7 +300,10 @@ export default function TasksDashboard() {
       <div style={{ background: '#fff', borderBottom: '1px solid #E2E8F0', position: 'sticky', top: 0, zIndex: 50 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px 10px' }}>
           <div>
-            <h1 style={{ fontSize: 18, fontWeight: 800, color: '#1E293B' }}>📋 タスク管理</h1>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <img src="/tasuki-logo.svg" alt="TASUKI" style={{ width: 28, height: 28 }} />
+              <h1 style={{ fontSize: 18, fontWeight: 800, color: '#1E3A6E', letterSpacing: 2 }}>TASUKI</h1>
+            </div>
             <p style={{ fontSize: 12, color: '#94A3B8' }}>未完了 {tasks.filter(t => t.status !== '完了').length}件</p>
           </div>
           {currentMember && (

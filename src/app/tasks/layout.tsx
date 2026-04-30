@@ -2,8 +2,8 @@ import { ToastProvider } from '@/components/tasks/Toast';
 import BottomNav from '@/components/tasks/BottomNav';
 
 export const metadata = {
-  title: '西山建材 タスク管理',
-  description: '業務タスク管理システム',
+  title: 'TASUKI - タスクを繋ぐ',
+  description: 'タスクを繋ぐ業務管理システム',
   manifest: '/manifest.json',
 };
 
