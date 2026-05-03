@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "MQ会計ダッシュボード - 西山建材工業",
-  description: "MQ会計リアルタイム経営管理ダッシュボード（第46期）",
+  title: "COATEX - 西山建材工業",
+  description: "COATEX | 経営を、塗り替えろ。SMART COATING & BUSINESS SOLUTIONS",
   robots: "noindex, nofollow",
 };
 

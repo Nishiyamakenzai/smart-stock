@@ -125,14 +125,17 @@ export default function LoginScreen({ mode, onLogin }: Props) {
         <div style={{ textAlign:"center", marginBottom:28 }}>
           <div style={{
             display:"inline-flex", alignItems:"center", justifyContent:"center",
-            width:60, height:60,
-            background:"linear-gradient(135deg, #3b82f6, #1d4ed8)",
+            width:64, height:64,
+            background:"linear-gradient(135deg, #1e3a8a, #1d4ed8)",
             borderRadius:18, marginBottom:16,
-            boxShadow:"0 6px 20px rgba(59,130,246,.4)",
-            fontSize:28,
-          }}>📊</div>
-          <div style={{ fontSize:10, color:"#94a3b8", fontWeight:700, letterSpacing:3 }}>MQ ACCOUNTING</div>
-          <div style={{ fontSize:22, fontWeight:800, color:"#0f172a", marginTop:6 }}>西山建材工業</div>
+            boxShadow:"0 6px 20px rgba(29,78,216,.45)",
+            fontSize:13, fontWeight:900, color:"#fff", letterSpacing:0.5,
+            border:"2px solid rgba(255,255,255,.15)",
+          }}>🎨</div>
+          <div style={{ fontSize:26, fontWeight:900, color:"#0f172a", letterSpacing:"-0.5px", lineHeight:1 }}>COATEX</div>
+          <div style={{ fontSize:11, fontWeight:700, color:"#f97316", marginTop:5, letterSpacing:0.5 }}>経営を、塗り替えろ。</div>
+          <div style={{ fontSize:9, color:"#94a3b8", fontWeight:600, marginTop:3, letterSpacing:1 }}>SMART COATING &amp; BUSINESS SOLUTIONS</div>
+          <div style={{ fontSize:10, color:"#94a3b8", marginTop:6 }}>西山建材工業</div>
           <div style={{
             display:"inline-block", marginTop:10, padding:"4px 14px",
             background: showReset ? "#fff7ed" : "#eff6ff",

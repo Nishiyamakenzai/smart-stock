@@ -35,12 +35,15 @@ export default function Header({ comp, targets, onOpenTargets, onOpenBS, onLogou
         padding:"16px 20px 12px",
       }}>
         <div>
-          <div style={{ fontSize:9, color:"rgba(255,255,255,.5)", fontWeight:700, letterSpacing:3, marginBottom:4 }}>
-            MQ ACCOUNTING DASHBOARD
+          <div style={{ display:"flex", alignItems:"baseline", gap:8, lineHeight:1 }}>
+            <span style={{ fontSize:26, fontWeight:900, color:"#fff", letterSpacing:"-0.5px" }}>COATEX</span>
+            <span style={{ fontSize:9, color:"rgba(255,255,255,.45)", fontWeight:700, letterSpacing:2 }}>by 西山建材工業</span>
           </div>
-          <div style={{ fontSize:20, fontWeight:800, color:"#fff", lineHeight:1 }}>西山建材工業</div>
-          <div style={{ fontSize:10, color:"rgba(255,255,255,.45)", marginTop:3 }}>
-            第46期 ｜ プロタイムズ富士吉田店 ｜ 外壁・屋根塗装
+          <div style={{ fontSize:11, fontWeight:700, color:"rgba(255,255,255,.75)", marginTop:4, letterSpacing:0.5 }}>
+            経営を、塗り替えろ。
+          </div>
+          <div style={{ fontSize:9, color:"rgba(255,255,255,.35)", marginTop:2, letterSpacing:1, fontWeight:600 }}>
+            SMART COATING &amp; BUSINESS SOLUTIONS
           </div>
         </div>
         <div className="header-top-btns" style={{ display:"flex", gap:6 }}>
