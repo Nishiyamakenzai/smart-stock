@@ -4,18 +4,21 @@ import Bar from "../ui/Bar";
 import Gauge from "../ui/Gauge";
 import SimpleChart from "../ui/SimpleChart";
 import { C, CHART_COLORS } from "@/lib/constants";
-import { PREV, PREV2 } from "@/lib/data";
+import { PREV, PREV2, YAMANASHI_MUNICIPALITIES } from "@/lib/data";
 import { fmt1, fmtPct } from "@/lib/utils";
-import type { ComputedData, Targets, AIHint } from "@/lib/types";
+import type { ComputedData, Targets, AIHint, Project, ShareRateState } from "@/lib/types";
 
 interface DashTabProps {
   comp: ComputedData;
   targets: Targets;
   aiHints: AIHint[];
   onOpenFixed: () => void;
+  projects: Project[];
+  shareRate: ShareRateState;
+  onGoShare: () => void;
 }
 
-export default function DashTab({ comp, targets, aiHints, onOpenFixed }: DashTabProps) {
+export default function DashTab({ comp, targets, aiHints, onOpenFixed, projects, shareRate, onGoShare }: DashTabProps) {
   const gaps = [
     { l:"PQ 売上", cur:comp.totalPQ, tgt:targets.pq, c:C.blue,   unit:"万" },
     { l:"MQ 粗利", cur:comp.totalMQ, tgt:targets.mq, c:C.purple, unit:"万" },
@@ -113,6 +116,67 @@ export default function DashTab({ comp, targets, aiHints, onOpenFixed }: DashTab
             </tbody>
           </table>
         </div>
+      </div>
+      <div className="card stagger-item">
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
+          <div className="section-title" style={{ margin:0 }}>🗾 エリア別シェア率</div>
+          <button onClick={onGoShare} style={{
+            fontSize:11, fontWeight:600, color:C.blue,
+            background:C.blueLight, border:`1px solid #bfdbfe`,
+            borderRadius:8, padding:"4px 10px", cursor:"pointer",
+          }}>詳細 →</button>
+        </div>
+        {(() => {
+          const favItems = YAMANASHI_MUNICIPALITIES
+            .filter(m => shareRate.favorites.includes(m.id))
+            .map(m => {
+              const demand = Math.max(1, Math.round(m.homes * 0.008));
+              const comp = projects.filter(p => p.area === m.id && p.status === "完了").length;
+              const contr = shareRate.contractCounts[m.id] || 0;
+              return { m, demand, comp, contr, compPct: comp / demand * 100, contrPct: contr / demand * 100 };
+            });
+          if (favItems.length === 0) return (
+            <p style={{ fontSize:12, color:C.t3, textAlign:"center", padding:"16px 0" }}>
+              シェア率タブでお気に入りを設定してください
+            </p>
+          );
+          return (
+            <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+              {favItems.map(({ m, demand, comp, contr, compPct, contrPct }) => (
+                <div key={m.id} style={{ background:C.card2, borderRadius:12, padding:"10px 12px" }}>
+                  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:6 }}>
+                    <span style={{ fontWeight:700, fontSize:13, color:C.t1 }}>★ {m.name}</span>
+                    <span style={{ fontSize:10, color:C.t3 }}>需要 {demand}棟/年</span>
+                  </div>
+                  <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:6 }}>
+                    <div>
+                      <div style={{ fontSize:9, color:"#3b82f6", fontWeight:700, marginBottom:3 }}>完工シェア率</div>
+                      <div style={{ display:"flex", alignItems:"baseline", gap:3, marginBottom:4 }}>
+                        <span style={{ fontSize:20, fontWeight:900, color:"#1d4ed8" }}>{compPct.toFixed(1)}</span>
+                        <span style={{ fontSize:10, color:"#3b82f6" }}>%</span>
+                        <span style={{ fontSize:10, color:C.t3 }}>{comp}/{demand}棟</span>
+                      </div>
+                      <div style={{ height:4, background:"#dbeafe", borderRadius:99 }}>
+                        <div style={{ width:`${Math.min(compPct, 100)}%`, height:"100%", background:"#3b82f6", borderRadius:99 }}/>
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize:9, color:"#f97316", fontWeight:700, marginBottom:3 }}>契約シェア率</div>
+                      <div style={{ display:"flex", alignItems:"baseline", gap:3, marginBottom:4 }}>
+                        <span style={{ fontSize:20, fontWeight:900, color:"#ea580c" }}>{contrPct.toFixed(1)}</span>
+                        <span style={{ fontSize:10, color:"#f97316" }}>%</span>
+                        <span style={{ fontSize:10, color:C.t3 }}>{contr}/{demand}棟</span>
+                      </div>
+                      <div style={{ height:4, background:"#fed7aa", borderRadius:99 }}>
+                        <div style={{ width:`${Math.min(contrPct, 100)}%`, height:"100%", background:"#f97316", borderRadius:99 }}/>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          );
+        })()}
       </div>
       <div className="card stagger-item">
         <div className="section-title">キャッシュフロー概算</div>

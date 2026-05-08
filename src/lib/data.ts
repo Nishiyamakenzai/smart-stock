@@ -1,6 +1,7 @@
 import type {
   Project, MonthlyFixed, AnnualBudget, Targets, BSData, PrevPeriod,
   VBreak, FixedCosts, F1Items, F2Items, F3Items, F4Items, F5Items,
+  Municipality, ShareRateState,
 } from "./types";
 
 // ── デフォルト値ファクトリ ─────────────────────────────────────
@@ -133,6 +134,45 @@ export const DEFAULT_BS: BSData = {
 
 export const PREV: PrevPeriod = {pq:8500, vq:4420, mq:4080, f:2640, g:1440, q:48, avgP:177};
 export const PREV2: PrevPeriod = {pq:6200, vq:3350, mq:2850, f:2200, g:650, q:38, avgP:163};
+
+// 山梨県全市町村 戸建て数データ（出典: ポスティング日本 / 住宅・土地統計調査）
+export const YAMANASHI_MUNICIPALITIES: Municipality[] = [
+  // 市
+  { id: "kofu",           name: "甲府市",       homes: 48977 },
+  { id: "fujiyoshida",    name: "富士吉田市",    homes: 13379 },
+  { id: "tsuru",          name: "都留市",        homes:  8285 },
+  { id: "yamanashi",      name: "山梨市",        homes: 10666 },
+  { id: "otsuki",         name: "大月市",        homes:  7885 },
+  { id: "nirasaki",       name: "韮崎市",        homes:  8565 },
+  { id: "minami-alps",    name: "南アルプス市",  homes: 21312 },
+  { id: "hokuto",         name: "北杜市",        homes: 16136 },
+  { id: "kai",            name: "甲斐市",        homes: 21854 },
+  { id: "fuefuki",        name: "笛吹市",        homes: 19908 },
+  { id: "uenohara",       name: "上野原市",      homes:  7775 },
+  { id: "koshu",          name: "甲州市",        homes:  9601 },
+  { id: "chuo",           name: "中央市",        homes:  8768 },
+  // 町
+  { id: "ichikawamisato", name: "市川三郷町",    homes:  5099 },
+  { id: "hayakawa",       name: "早川町",        homes:   410 },
+  { id: "minobu",         name: "身延町",        homes:  3983 },
+  { id: "nanbu",          name: "南部町",        homes:  2576 },
+  { id: "fujikawa",       name: "富士川町",      homes:  4494 },
+  { id: "showa",          name: "昭和町",        homes:  4732 },
+  { id: "nishikatsura",   name: "西桂町",        homes:  1269 },
+  { id: "fujikawaguchiko",name: "富士河口湖町",  homes:  7350 },
+  // 村
+  { id: "doushi",         name: "道志村",        homes:   565 },
+  { id: "oshino",         name: "忍野村",        homes:  1800 },
+  { id: "yamanakako",     name: "山中湖村",      homes:  1527 },
+  { id: "narusawa",       name: "鳴沢村",        homes:   988 },
+  { id: "kosuge",         name: "小菅村",        homes:   298 },
+  { id: "tabayama",       name: "丹波山村",      homes:   223 },
+];
+
+export const DEFAULT_SHARE_RATE: ShareRateState = {
+  favorites: ["fujiyoshida", "fujikawaguchiko", "tsuru"],
+  contractCounts: {},
+};
 
 export const defaultMF = (base?: Partial<MonthlyFixed>): MonthlyFixed => {
   const m: MonthlyFixed = {};

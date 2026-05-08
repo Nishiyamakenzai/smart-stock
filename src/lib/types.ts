@@ -16,6 +16,18 @@ export interface Project {
   p: number;
   v: VBreak;
   status: string;
+  area?: string;
+}
+
+export interface Municipality {
+  id: string;
+  name: string;
+  homes: number;
+}
+
+export interface ShareRateState {
+  favorites: string[];
+  contractCounts: Record<string, number>;
 }
 
 // F1 人件費

@@ -6,16 +6,17 @@ import ProjectsTab from "./tabs/ProjectsTab";
 import MonthTab from "./tabs/MonthTab";
 import AnalysisTab from "./tabs/AnalysisTab";
 import BSTab from "./tabs/BSTab";
+import ShareRateTab from "./tabs/ShareRateTab";
 import ProjectModal from "./modals/ProjectModal";
 import FixedModal from "./modals/FixedModal";
 import TargetModal from "./modals/TargetModal";
 import BSModal from "./modals/BSModal";
-import { DEMO_PROJECTS, DEMO_MF, DEFAULT_AB, DEFAULT_TARGETS, DEFAULT_BS, migrateMF, migrateAB } from "@/lib/data";
+import { DEMO_PROJECTS, DEMO_MF, DEFAULT_AB, DEFAULT_TARGETS, DEFAULT_BS, DEFAULT_SHARE_RATE, migrateMF, migrateAB } from "@/lib/data";
 import { computeData, aiOverall } from "@/lib/utils";
-import type { Project, MonthlyFixed, AnnualBudget, Targets, BSData } from "@/lib/types";
+import type { Project, MonthlyFixed, AnnualBudget, Targets, BSData, ShareRateState } from "@/lib/types";
 
-type Tab = "dash" | "proj" | "month" | "analysis" | "bs";
-const TABS: [Tab, string][] = [["dash","総合"], ["proj","案件"], ["month","月次"], ["analysis","分析"], ["bs","B/S"]];
+type Tab = "dash" | "proj" | "month" | "analysis" | "bs" | "share";
+const TABS: [Tab, string][] = [["dash","総合"], ["proj","案件"], ["month","月次"], ["analysis","分析"], ["bs","B/S"], ["share","シェア率"]];
 
 export default function MQDashboard({ onLogout }: { onLogout: () => void }) {
   // データ状態（初期値はデモデータ、マウント後にAPIから上書き）
@@ -24,6 +25,7 @@ export default function MQDashboard({ onLogout }: { onLogout: () => void }) {
   const [ab, setAb] = useState<AnnualBudget>(DEFAULT_AB);
   const [targets, setTargets] = useState<Targets>(DEFAULT_TARGETS);
   const [bs, setBs] = useState<BSData>(DEFAULT_BS);
+  const [shareRate, setShareRate] = useState<ShareRateState>(DEFAULT_SHARE_RATE);
   const [dataLoaded, setDataLoaded] = useState(false);
   const [loadError, setLoadError] = useState(false);
   // saveEnabled は DB からの正常ロード後のみ true にする（エラー時に初期デモデータを上書き保存しないための安全弁）
@@ -53,6 +55,7 @@ export default function MQDashboard({ onLogout }: { onLogout: () => void }) {
         if (d["mq-ab"])       setAb(migrateAB(d["mq-ab"]));
         if (d["mq-targets"])  setTargets(d["mq-targets"]);
         if (d["mq-bs"])       setBs(d["mq-bs"]);
+        if (d["mq-share"])    setShareRate(d["mq-share"]);
         // DB から正常に取得できた場合のみ保存を有効化
         setSaveEnabled(true);
       })
@@ -85,6 +88,7 @@ export default function MQDashboard({ onLogout }: { onLogout: () => void }) {
   useEffect(() => { if (saveEnabled) debouncedSave("mq-ab", ab); },            [ab, saveEnabled, debouncedSave]);
   useEffect(() => { if (saveEnabled) debouncedSave("mq-targets", targets); },  [targets, saveEnabled, debouncedSave]);
   useEffect(() => { if (saveEnabled) debouncedSave("mq-bs", bs); },            [bs, saveEnabled, debouncedSave]);
+  useEffect(() => { if (saveEnabled) debouncedSave("mq-share", shareRate); },  [shareRate, saveEnabled, debouncedSave]);
 
   // ── 計算 ──────────────────────────────────────────────────
   const comp = useMemo(() => computeData(projects, mf), [projects, mf]);
@@ -161,11 +165,12 @@ export default function MQDashboard({ onLogout }: { onLogout: () => void }) {
       </div>
 
       <div style={{ padding:"14px 16px", maxWidth:800, margin:"0 auto" }}>
-        {tab==="dash"     && <DashTab comp={comp} targets={targets} aiHints={aiHints} onOpenFixed={() => setShowFM(true)}/>}
+        {tab==="dash"     && <DashTab comp={comp} targets={targets} aiHints={aiHints} onOpenFixed={() => setShowFM(true)} projects={projects} shareRate={shareRate} onGoShare={() => setTab("share")}/>}
         {tab==="proj"     && <ProjectsTab projects={projects} filterMonth={filterMonth} onFilterMonth={setFilterMonth} onNewProject={() => { setEditP(null); setShowPM(true); }} onEditProject={p => { setEditP(p); setShowPM(true); }}/>}
         {tab==="month"    && <MonthTab comp={comp} selectedMonth={filterMonth} onSelectMonth={setFilterMonth}/>}
         {tab==="analysis" && <AnalysisTab comp={comp} targets={targets} projects={projects}/>}
         {tab==="bs"       && <BSTab bs={bs} onEdit={() => setShowBM(true)}/>}
+        {tab==="share"    && <ShareRateTab projects={projects} shareRate={shareRate} onChange={setShareRate}/>}
       </div>
 
       {showPM && <ProjectModal project={editP} onSave={handleSaveProject} onClose={() => { setShowPM(false); setEditP(null); }} onDelete={editP ? id => setProjects(prev => prev.filter(p=>p.id!==id)) : undefined}/>}

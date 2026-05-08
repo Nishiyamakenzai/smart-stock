@@ -2,12 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { verifyToken, COOKIE_NAME } from "@/lib/auth";
 import { dbSet, getSupabase } from "@/lib/supabase";
-import { DEMO_PROJECTS, DEMO_MF, DEFAULT_AB, DEFAULT_TARGETS, DEFAULT_BS } from "@/lib/data";
+import { DEMO_PROJECTS, DEMO_MF, DEFAULT_AB, DEFAULT_TARGETS, DEFAULT_BS, DEFAULT_SHARE_RATE } from "@/lib/data";
 
 // APIルートは常に動的レンダリング（ビルド時にSupabaseへ接続しない）
 export const dynamic = "force-dynamic";
 
-const DATA_KEYS = ["mq-projects", "mq-mf", "mq-ab", "mq-targets", "mq-bs"] as const;
+const DATA_KEYS = ["mq-projects", "mq-mf", "mq-ab", "mq-targets", "mq-bs", "mq-share"] as const;
 type DataKey = (typeof DATA_KEYS)[number];
 
 const DEFAULTS: Record<DataKey, unknown> = {
@@ -16,6 +16,7 @@ const DEFAULTS: Record<DataKey, unknown> = {
   "mq-ab":       DEFAULT_AB,
   "mq-targets":  DEFAULT_TARGETS,
   "mq-bs":       DEFAULT_BS,
+  "mq-share":    DEFAULT_SHARE_RATE,
 };
 
 async function requireAuth(): Promise<boolean> {
