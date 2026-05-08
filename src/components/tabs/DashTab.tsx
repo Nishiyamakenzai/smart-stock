@@ -170,11 +170,12 @@ export default function DashTab({ comp, targets, aiHints, onOpenFixed, projects,
                       ].map(it => (
                         <div key={it.label} style={{ background:it.bg, borderRadius:8, padding:"7px 8px" }}>
                           <div style={{ fontSize:9, color:it.tc, fontWeight:700, marginBottom:2 }}>{it.label}</div>
-                          <div style={{ display:"flex", alignItems:"baseline", gap:1 }}>
+                          <div style={{ display:"flex", alignItems:"baseline", gap:2 }}>
                             <span style={{ fontSize:17, fontWeight:900, color:it.tc }}>{it.pct.toFixed(1)}</span>
                             <span style={{ fontSize:9, color:it.barC }}>%</span>
                           </div>
-                          <div style={{ fontSize:9, color:C.t3 }}>{it.count}/{demand}棟</div>
+                          <div style={{ fontSize:11, fontWeight:700, color:it.tc, marginTop:1 }}>{it.count}件</div>
+                          <div style={{ fontSize:9, color:C.t3 }}>需要 {demand}棟</div>
                           <div style={{ marginTop:3, height:3, background:`${it.barC}30`, borderRadius:99 }}>
                             <div style={{ width:`${Math.min(it.pct, 100)}%`, height:"100%", background:it.barC, borderRadius:99 }}/>
                           </div>

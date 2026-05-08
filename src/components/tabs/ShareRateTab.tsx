@@ -199,44 +199,24 @@ export default function ShareRateTab({ projects, shareRate, onChange }: Props) {
 
               {/* 3つのシェア率 */}
               <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:6 }}>
-                {/* 完工済み */}
-                <div style={{ background:"#ecfdf5", borderRadius:10, padding:"8px 10px" }}>
-                  <div style={{ fontSize:9, color:"#059669", fontWeight:700, marginBottom:2 }}>完工済み</div>
-                  <div style={{ display:"flex", alignItems:"baseline", gap:2 }}>
-                    <span style={{ fontSize:19, fontWeight:900, color:"#059669" }}>{donePct.toFixed(1)}</span>
-                    <span style={{ fontSize:10, color:"#10b981" }}>%</span>
+                {[
+                  { label:"完工済み",   pct:donePct,     count:done,     bg:"#ecfdf5", barBg:"#a7f3d0", barC:"#10b981", tc:"#059669" },
+                  { label:"完工見込み", pct:forecastPct, count:forecast, bg:"#eff6ff", barBg:"#bfdbfe", barC:"#3b82f6", tc:"#1d4ed8" },
+                  { label:"契約",       pct:contrPct,    count:contract, bg:"#fff7ed", barBg:"#fed7aa", barC:"#f97316", tc:"#ea580c" },
+                ].map(it => (
+                  <div key={it.label} style={{ background:it.bg, borderRadius:10, padding:"8px 10px" }}>
+                    <div style={{ fontSize:9, color:it.tc, fontWeight:700, marginBottom:2 }}>{it.label}</div>
+                    <div style={{ display:"flex", alignItems:"baseline", gap:2 }}>
+                      <span style={{ fontSize:18, fontWeight:900, color:it.tc }}>{it.pct.toFixed(1)}</span>
+                      <span style={{ fontSize:10, color:it.barC }}>%</span>
+                    </div>
+                    <div style={{ fontSize:13, fontWeight:800, color:it.tc, marginTop:1 }}>{it.count}件</div>
+                    <div style={{ fontSize:9, color:C.t3 }}>需要 {demand}棟</div>
+                    <div style={{ marginTop:4, height:4, background:it.barBg, borderRadius:99 }}>
+                      <div style={{ width:`${Math.min(it.pct, 100)}%`, height:"100%", background:it.barC, borderRadius:99 }}/>
+                    </div>
                   </div>
-                  <div style={{ fontSize:10, color:C.t3 }}>{done}/{demand}棟</div>
-                  <div style={{ marginTop:4, height:4, background:"#a7f3d0", borderRadius:99 }}>
-                    <div style={{ width:`${Math.min(donePct, 100)}%`, height:"100%", background:"#10b981", borderRadius:99 }}/>
-                  </div>
-                </div>
-
-                {/* 完工見込み */}
-                <div style={{ background:"#eff6ff", borderRadius:10, padding:"8px 10px" }}>
-                  <div style={{ fontSize:9, color:"#1d4ed8", fontWeight:700, marginBottom:2 }}>完工見込み</div>
-                  <div style={{ display:"flex", alignItems:"baseline", gap:2 }}>
-                    <span style={{ fontSize:19, fontWeight:900, color:"#1d4ed8" }}>{forecastPct.toFixed(1)}</span>
-                    <span style={{ fontSize:10, color:"#3b82f6" }}>%</span>
-                  </div>
-                  <div style={{ fontSize:10, color:C.t3 }}>{forecast}/{demand}棟</div>
-                  <div style={{ marginTop:4, height:4, background:"#bfdbfe", borderRadius:99 }}>
-                    <div style={{ width:`${Math.min(forecastPct, 100)}%`, height:"100%", background:"#3b82f6", borderRadius:99 }}/>
-                  </div>
-                </div>
-
-                {/* 契約 */}
-                <div style={{ background:"#fff7ed", borderRadius:10, padding:"8px 10px" }}>
-                  <div style={{ fontSize:9, color:"#ea580c", fontWeight:700, marginBottom:2 }}>契約</div>
-                  <div style={{ display:"flex", alignItems:"baseline", gap:2 }}>
-                    <span style={{ fontSize:19, fontWeight:900, color:"#ea580c" }}>{contrPct.toFixed(1)}</span>
-                    <span style={{ fontSize:10, color:"#f97316" }}>%</span>
-                  </div>
-                  <div style={{ fontSize:10, color:C.t3 }}>{contract}/{demand}棟</div>
-                  <div style={{ marginTop:4, height:4, background:"#fed7aa", borderRadius:99 }}>
-                    <div style={{ width:`${Math.min(contrPct, 100)}%`, height:"100%", background:"#f97316", borderRadius:99 }}/>
-                  </div>
-                </div>
+                ))}
               </div>
             </div>
           );
