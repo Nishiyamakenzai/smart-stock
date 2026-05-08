@@ -56,14 +56,28 @@ export default function ProjectModal({ project, onSave, onClose, onDelete }: Pro
           <NumberInput label="P（売上）" value={f.p} onChange={v => setF({...f, p:v})} unit="万"/>
         </div>
 
-        <div>
-          <label style={{ fontSize:12, color:C.t2, fontWeight:600, display:"block", marginBottom:5 }}>エリア（市区町村）</label>
-          <select value={f.area ?? ""} onChange={e => setF({...f, area: e.target.value || undefined})} style={selectStyle as React.CSSProperties}>
-            <option value="">── 未選択 ──</option>
-            {YAMANASHI_MUNICIPALITIES.map(m => (
-              <option key={m.id} value={m.id}>{m.name}</option>
-            ))}
-          </select>
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8 }}>
+          <div>
+            <label style={{ fontSize:12, color:C.t2, fontWeight:600, display:"block", marginBottom:5 }}>エリア（市区町村）</label>
+            <select value={f.area ?? ""} onChange={e => setF({...f, area: e.target.value || undefined})} style={selectStyle as React.CSSProperties}>
+              <option value="">── 未選択 ──</option>
+              {YAMANASHI_MUNICIPALITIES.map(m => (
+                <option key={m.id} value={m.id}>{m.name}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label style={{ fontSize:12, color:C.t2, fontWeight:600, display:"block", marginBottom:5 }}>契約年月</label>
+            <input
+              type="month"
+              value={f.contractDate ?? ""}
+              onChange={e => setF({...f, contractDate: e.target.value || undefined})}
+              style={{
+                ...selectStyle,
+                fontFamily:"inherit",
+              } as React.CSSProperties}
+            />
+          </div>
         </div>
 
         <div style={{ background:C.card3, borderRadius:14, padding:16 }}>

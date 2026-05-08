@@ -171,7 +171,6 @@ export const YAMANASHI_MUNICIPALITIES: Municipality[] = [
 
 export const DEFAULT_SHARE_RATE: ShareRateState = {
   favorites: ["fujiyoshida", "fujikawaguchiko", "tsuru"],
-  contractCounts: {},
 };
 
 export const defaultMF = (base?: Partial<MonthlyFixed>): MonthlyFixed => {

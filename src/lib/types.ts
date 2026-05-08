@@ -17,6 +17,7 @@ export interface Project {
   v: VBreak;
   status: string;
   area?: string;
+  contractDate?: string; // "YYYY-MM" 形式（契約年月）
 }
 
 export interface Municipality {
@@ -26,8 +27,7 @@ export interface Municipality {
 }
 
 export interface ShareRateState {
-  favorites: string[];
-  contractCounts: Record<string, number>;
+  favorites: string[]; // お気に入り市区町村IDリスト
 }
 
 // F1 人件費

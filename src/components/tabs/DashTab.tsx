@@ -127,14 +127,24 @@ export default function DashTab({ comp, targets, aiHints, onOpenFixed, projects,
           }}>詳細 →</button>
         </div>
         {(() => {
+          // 現在の期（12月〜11月）判定
+          const now = new Date();
+          const y = now.getFullYear(), mo = now.getMonth();
+          const startY = mo === 11 ? y : y - 1;
+          const fyStart = `${startY}-12`, fyEnd = `${startY + 1}-11`;
+          const inFY = (d?: string) => !!d && d >= fyStart && d <= fyEnd;
+
           const favItems = YAMANASHI_MUNICIPALITIES
             .filter(m => shareRate.favorites.includes(m.id))
             .map(m => {
               const demand = Math.max(1, Math.round(m.homes * 0.008));
-              const comp = projects.filter(p => p.area === m.id && p.status === "完了").length;
-              const contr = shareRate.contractCounts[m.id] || 0;
-              return { m, demand, comp, contr, compPct: comp / demand * 100, contrPct: contr / demand * 100 };
+              const area = projects.filter(p => p.area === m.id);
+              const done     = area.filter(p => p.status === "完了").length;
+              const forecast = area.length;
+              const contract = area.filter(p => inFY(p.contractDate)).length;
+              return { m, demand, done, forecast, contract };
             });
+
           if (favItems.length === 0) return (
             <p style={{ fontSize:12, color:C.t3, textAlign:"center", padding:"16px 0" }}>
               シェア率タブでお気に入りを設定してください
@@ -142,38 +152,38 @@ export default function DashTab({ comp, targets, aiHints, onOpenFixed, projects,
           );
           return (
             <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
-              {favItems.map(({ m, demand, comp, contr, compPct, contrPct }) => (
-                <div key={m.id} style={{ background:C.card2, borderRadius:12, padding:"10px 12px" }}>
-                  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:6 }}>
-                    <span style={{ fontWeight:700, fontSize:13, color:C.t1 }}>★ {m.name}</span>
-                    <span style={{ fontSize:10, color:C.t3 }}>需要 {demand}棟/年</span>
-                  </div>
-                  <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:6 }}>
-                    <div>
-                      <div style={{ fontSize:9, color:"#3b82f6", fontWeight:700, marginBottom:3 }}>完工シェア率</div>
-                      <div style={{ display:"flex", alignItems:"baseline", gap:3, marginBottom:4 }}>
-                        <span style={{ fontSize:20, fontWeight:900, color:"#1d4ed8" }}>{compPct.toFixed(1)}</span>
-                        <span style={{ fontSize:10, color:"#3b82f6" }}>%</span>
-                        <span style={{ fontSize:10, color:C.t3 }}>{comp}/{demand}棟</span>
-                      </div>
-                      <div style={{ height:4, background:"#dbeafe", borderRadius:99 }}>
-                        <div style={{ width:`${Math.min(compPct, 100)}%`, height:"100%", background:"#3b82f6", borderRadius:99 }}/>
-                      </div>
+              {favItems.map(({ m, demand, done, forecast, contract }) => {
+                const donePct     = done     / demand * 100;
+                const forecastPct = forecast / demand * 100;
+                const contrPct    = contract / demand * 100;
+                return (
+                  <div key={m.id} style={{ background:C.card2, borderRadius:12, padding:"10px 12px" }}>
+                    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
+                      <span style={{ fontWeight:700, fontSize:13, color:C.t1 }}>★ {m.name}</span>
+                      <span style={{ fontSize:10, color:C.t3 }}>需要 {demand}棟/年</span>
                     </div>
-                    <div>
-                      <div style={{ fontSize:9, color:"#f97316", fontWeight:700, marginBottom:3 }}>契約シェア率</div>
-                      <div style={{ display:"flex", alignItems:"baseline", gap:3, marginBottom:4 }}>
-                        <span style={{ fontSize:20, fontWeight:900, color:"#ea580c" }}>{contrPct.toFixed(1)}</span>
-                        <span style={{ fontSize:10, color:"#f97316" }}>%</span>
-                        <span style={{ fontSize:10, color:C.t3 }}>{contr}/{demand}棟</span>
-                      </div>
-                      <div style={{ height:4, background:"#fed7aa", borderRadius:99 }}>
-                        <div style={{ width:`${Math.min(contrPct, 100)}%`, height:"100%", background:"#f97316", borderRadius:99 }}/>
-                      </div>
+                    <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:5 }}>
+                      {[
+                        { label:"完工済み", pct:donePct,     count:done,     bg:"#ecfdf5", barC:"#10b981", tc:"#059669" },
+                        { label:"完工見込み", pct:forecastPct, count:forecast, bg:"#eff6ff", barC:"#3b82f6", tc:"#1d4ed8" },
+                        { label:"契約",    pct:contrPct,    count:contract, bg:"#fff7ed", barC:"#f97316", tc:"#ea580c" },
+                      ].map(it => (
+                        <div key={it.label} style={{ background:it.bg, borderRadius:8, padding:"7px 8px" }}>
+                          <div style={{ fontSize:9, color:it.tc, fontWeight:700, marginBottom:2 }}>{it.label}</div>
+                          <div style={{ display:"flex", alignItems:"baseline", gap:1 }}>
+                            <span style={{ fontSize:17, fontWeight:900, color:it.tc }}>{it.pct.toFixed(1)}</span>
+                            <span style={{ fontSize:9, color:it.barC }}>%</span>
+                          </div>
+                          <div style={{ fontSize:9, color:C.t3 }}>{it.count}/{demand}棟</div>
+                          <div style={{ marginTop:3, height:3, background:`${it.barC}30`, borderRadius:99 }}>
+                            <div style={{ width:`${Math.min(it.pct, 100)}%`, height:"100%", background:it.barC, borderRadius:99 }}/>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           );
         })()}
