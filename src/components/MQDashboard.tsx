@@ -11,9 +11,10 @@ import ProjectModal from "./modals/ProjectModal";
 import FixedModal from "./modals/FixedModal";
 import TargetModal from "./modals/TargetModal";
 import BSModal from "./modals/BSModal";
-import { DEMO_PROJECTS, DEMO_MF, DEFAULT_AB, DEFAULT_TARGETS, DEFAULT_BS, DEFAULT_SHARE_RATE, migrateMF, migrateAB } from "@/lib/data";
+import PrevModal from "./modals/PrevModal";
+import { DEMO_PROJECTS, DEMO_MF, DEFAULT_AB, DEFAULT_TARGETS, DEFAULT_BS, DEFAULT_SHARE_RATE, PREV, PREV2, migrateMF, migrateAB } from "@/lib/data";
 import { computeData, aiOverall } from "@/lib/utils";
-import type { Project, MonthlyFixed, AnnualBudget, Targets, BSData, ShareRateState } from "@/lib/types";
+import type { Project, MonthlyFixed, AnnualBudget, Targets, BSData, ShareRateState, PrevPeriod } from "@/lib/types";
 
 type Tab = "dash" | "proj" | "month" | "analysis" | "bs" | "share";
 const TABS: [Tab, string][] = [["dash","総合"], ["proj","案件"], ["month","月次"], ["analysis","分析"], ["bs","B/S"], ["share","シェア率"]];
@@ -26,6 +27,8 @@ export default function MQDashboard({ onLogout }: { onLogout: () => void }) {
   const [targets, setTargets] = useState<Targets>(DEFAULT_TARGETS);
   const [bs, setBs] = useState<BSData>(DEFAULT_BS);
   const [shareRate, setShareRate] = useState<ShareRateState>(DEFAULT_SHARE_RATE);
+  const [prev, setPrev] = useState<PrevPeriod>(PREV);
+  const [prev2, setPrev2] = useState<PrevPeriod>(PREV2);
   const [dataLoaded, setDataLoaded] = useState(false);
   const [loadError, setLoadError] = useState(false);
   // saveEnabled は DB からの正常ロード後のみ true にする（エラー時に初期デモデータを上書き保存しないための安全弁）
@@ -38,6 +41,7 @@ export default function MQDashboard({ onLogout }: { onLogout: () => void }) {
   const [showFM, setShowFM] = useState(false);
   const [showTM, setShowTM] = useState(false);
   const [showBM, setShowBM] = useState(false);
+  const [showPrevM, setShowPrevM] = useState(false);
   const [filterMonth, setFilterMonth] = useState<number | null>(null);
 
   // ── データ読み込み（マウント時に1回だけ） ──────────────────
@@ -56,6 +60,8 @@ export default function MQDashboard({ onLogout }: { onLogout: () => void }) {
         if (d["mq-targets"])  setTargets(d["mq-targets"]);
         if (d["mq-bs"])       setBs(d["mq-bs"]);
         if (d["mq-share"])    setShareRate(d["mq-share"]);
+        if (d["mq-prev"])     setPrev(d["mq-prev"]);
+        if (d["mq-prev2"])    setPrev2(d["mq-prev2"]);
         // DB から正常に取得できた場合のみ保存を有効化
         setSaveEnabled(true);
       })
@@ -89,6 +95,8 @@ export default function MQDashboard({ onLogout }: { onLogout: () => void }) {
   useEffect(() => { if (saveEnabled) debouncedSave("mq-targets", targets); },  [targets, saveEnabled, debouncedSave]);
   useEffect(() => { if (saveEnabled) debouncedSave("mq-bs", bs); },            [bs, saveEnabled, debouncedSave]);
   useEffect(() => { if (saveEnabled) debouncedSave("mq-share", shareRate); },  [shareRate, saveEnabled, debouncedSave]);
+  useEffect(() => { if (saveEnabled) debouncedSave("mq-prev",  prev); },       [prev,  saveEnabled, debouncedSave]);
+  useEffect(() => { if (saveEnabled) debouncedSave("mq-prev2", prev2); },      [prev2, saveEnabled, debouncedSave]);
 
   // ── 計算 ──────────────────────────────────────────────────
   const comp = useMemo(() => computeData(projects, mf), [projects, mf]);
@@ -165,7 +173,7 @@ export default function MQDashboard({ onLogout }: { onLogout: () => void }) {
       </div>
 
       <div style={{ padding:"14px 16px", maxWidth:800, margin:"0 auto" }}>
-        {tab==="dash"     && <DashTab comp={comp} targets={targets} aiHints={aiHints} onOpenFixed={() => setShowFM(true)} projects={projects} shareRate={shareRate} onGoShare={() => setTab("share")}/>}
+        {tab==="dash"     && <DashTab comp={comp} targets={targets} aiHints={aiHints} onOpenFixed={() => setShowFM(true)} projects={projects} shareRate={shareRate} onGoShare={() => setTab("share")} prev={prev} prev2={prev2} onEditPrev={() => setShowPrevM(true)}/>}
         {tab==="proj"     && <ProjectsTab projects={projects} filterMonth={filterMonth} onFilterMonth={setFilterMonth} onNewProject={() => { setEditP(null); setShowPM(true); }} onEditProject={p => { setEditP(p); setShowPM(true); }}/>}
         {tab==="month"    && <MonthTab comp={comp} selectedMonth={filterMonth} onSelectMonth={setFilterMonth}/>}
         {tab==="analysis" && <AnalysisTab comp={comp} targets={targets} projects={projects}/>}
@@ -177,6 +185,7 @@ export default function MQDashboard({ onLogout }: { onLogout: () => void }) {
       {showFM && <FixedModal mfData={mf} abData={ab} onSave={(f2,b2) => { setMf(f2); setAb(b2); }} onClose={() => setShowFM(false)}/>}
       {showTM && <TargetModal targets={targets} onSave={setTargets} onClose={() => setShowTM(false)}/>}
       {showBM && <BSModal bs={bs} onSave={setBs} onClose={() => setShowBM(false)}/>}
+      {showPrevM && <PrevModal prev={prev} prev2={prev2} onSave={(p, p2) => { setPrev(p); setPrev2(p2); }} onClose={() => setShowPrevM(false)}/>}
     </div>
   );
 }
