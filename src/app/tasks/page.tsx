@@ -180,6 +180,8 @@ export default function TasksDashboard() {
   const [filterStatus, setFilterStatus] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [pendingApproveId, setPendingApproveId] = useState<string | null>(null);
+  const [pendingStatusChange, setPendingStatusChange] = useState<{ id: string; status: TaskStatus } | null>(null);
   const [loading, setLoading] = useState(true);
   const [showPushSetup, setShowPushSetup] = useState(false);
 
@@ -350,8 +352,8 @@ export default function TasksDashboard() {
               <ReviewCard
                 key={task.id}
                 task={task}
-                onApprove={handleApprove}
-                onChange={handleStatusChange}
+                onApprove={id => setPendingApproveId(id)}
+                onChange={(id, status) => setPendingStatusChange({ id, status })}
               />
             ))}
           </div>
@@ -432,6 +434,22 @@ export default function TasksDashboard() {
         danger
         onConfirm={handleDelete}
         onCancel={() => setDeleteId(null)}
+      />
+      <ConfirmDialog
+        open={!!pendingApproveId}
+        title="確認完了"
+        message="このタスクを確認済みにして完了にしますか？"
+        confirmLabel="完了にする"
+        onConfirm={async () => { if (pendingApproveId) { await handleApprove(pendingApproveId); setPendingApproveId(null); } }}
+        onCancel={() => setPendingApproveId(null)}
+      />
+      <ConfirmDialog
+        open={!!pendingStatusChange}
+        title="ステータスを変更"
+        message={pendingStatusChange ? `ステータスを「${pendingStatusChange.status}」に変更しますか？` : ''}
+        confirmLabel={pendingStatusChange ? `${pendingStatusChange.status}にする` : '変更する'}
+        onConfirm={async () => { if (pendingStatusChange) { await handleStatusChange(pendingStatusChange.id, pendingStatusChange.status); setPendingStatusChange(null); } }}
+        onCancel={() => setPendingStatusChange(null)}
       />
     </>
   );
