@@ -30,6 +30,7 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
+  const [pendingStatus, setPendingStatus] = useState<TaskStatus | null>(null);
   const [editing, setEditing] = useState(false);
 
   const [editTitle, setEditTitle] = useState('');
@@ -154,7 +155,7 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
           <p style={{ fontSize: 11, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 10 }}>ステータスを変更</p>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
             {(['未対応', '対応中', '確認待ち', '完了', '保留'] as TaskStatus[]).map(s => (
-              <button key={s} disabled={saving || task.status === s} onClick={() => changeStatus(s)}
+              <button key={s} disabled={saving || task.status === s} onClick={() => setPendingStatus(s)}
                 style={{
                   padding: '9px 16px', borderRadius: 10, border: `2px solid ${STATUS_COLORS[s]}`,
                   background: task.status === s ? STATUS_COLORS[s] : STATUS_COLORS[s] + '11',
@@ -302,6 +303,14 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
         danger
         onConfirm={handleDelete}
         onCancel={() => setShowDelete(false)}
+      />
+      <ConfirmDialog
+        open={pendingStatus !== null}
+        title="ステータスを変更"
+        message={`「${task.title}」を「${pendingStatus}」に変更しますか？`}
+        confirmLabel={`${pendingStatus}にする`}
+        onConfirm={async () => { if (pendingStatus) { await changeStatus(pendingStatus); setPendingStatus(null); } }}
+        onCancel={() => setPendingStatus(null)}
       />
     </>
   );

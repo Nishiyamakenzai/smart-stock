@@ -15,6 +15,7 @@ export default function MyTasksPage() {
   const [hydrated, setHydrated] = useState(false);
   const [loading, setLoading] = useState(true);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [pendingApproveId, setPendingApproveId] = useState<string | null>(null);
 
   useEffect(() => {
     const stored = localStorage.getItem('tasks_current_user_id');
@@ -179,7 +180,7 @@ export default function MyTasksPage() {
                   onDelete={id => setDeleteId(id)}
                 />
                 <button
-                  onClick={() => handleApprove(task.id)}
+                  onClick={() => setPendingApproveId(task.id)}
                   style={{
                     width: '100%',
                     padding: '12px 0',
@@ -212,6 +213,14 @@ export default function MyTasksPage() {
         danger
         onConfirm={handleDelete}
         onCancel={() => setDeleteId(null)}
+      />
+      <ConfirmDialog
+        open={!!pendingApproveId}
+        title="確認完了"
+        message="このタスクを確認済みにして完了にしますか？"
+        confirmLabel="完了にする"
+        onConfirm={async () => { if (pendingApproveId) { await handleApprove(pendingApproveId); setPendingApproveId(null); } }}
+        onCancel={() => setPendingApproveId(null)}
       />
     </>
   );
