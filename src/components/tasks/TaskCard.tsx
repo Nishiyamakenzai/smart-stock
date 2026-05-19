@@ -2,6 +2,7 @@
 import { useRef, useState } from 'react';
 import Link from 'next/link';
 import { Task, STATUS_COLORS, PRIORITY_COLORS, nextStatus, formatDate, TaskStatus } from '@/lib/task-types';
+import ConfirmDialog from '@/components/tasks/ConfirmDialog';
 
 interface Props {
   task: Task;
@@ -24,6 +25,7 @@ export default function TaskCard({ task, onStatusChange, onDelete }: Props) {
   const [swipeX, setSwipeX] = useState(0);
   const [swiped, setSwiped] = useState(false);
   const [advancing, setAdvancing] = useState(false);
+  const [pendingStatus, setPendingStatus] = useState<TaskStatus | null>(null);
 
   const statusColor = STATUS_COLORS[task.status];
   const isUrgent = task.priority === '緊急';
@@ -39,15 +41,23 @@ export default function TaskCard({ task, onStatusChange, onDelete }: Props) {
     if (!isDragging.current) return;
     setSwipeX(Math.max(-80, Math.min(80, e.touches[0].clientX - startX.current)));
   };
-  const handleTouchEnd = async () => {
+  const handleTouchEnd = () => {
     isDragging.current = false;
     if (swipeX > 50) {
       const next = nextStatus(task.status);
-      if (next !== task.status) { setAdvancing(true); await onStatusChange(task.id, next); setAdvancing(false); }
+      if (next !== task.status) setPendingStatus(next);
     } else if (swipeX < -50) {
       setSwiped(true);
     }
     setSwipeX(0);
+  };
+
+  const confirmStatusChange = async () => {
+    if (!pendingStatus) return;
+    setAdvancing(true);
+    await onStatusChange(task.id, pendingStatus);
+    setAdvancing(false);
+    setPendingStatus(null);
   };
 
   const cardBg = isDone ? '#F8FAFC' : (task.assignee?.color ? task.assignee.color + '0D' : '#fff');
@@ -145,10 +155,10 @@ export default function TaskCard({ task, onStatusChange, onDelete }: Props) {
         {/* クイックステータス進行ボタン */}
         {!isDone && task.status !== '保留' && (
           <button
-            onClick={async e => {
+            onClick={e => {
               e.preventDefault();
               const next = nextStatus(task.status);
-              if (next !== task.status) { setAdvancing(true); await onStatusChange(task.id, next); setAdvancing(false); }
+              if (next !== task.status) setPendingStatus(next);
             }}
             style={{
               flexShrink: 0, alignSelf: 'stretch', width: 44, background: statusColor + '18',
@@ -165,6 +175,15 @@ export default function TaskCard({ task, onStatusChange, onDelete }: Props) {
           </button>
         )}
       </div>
+
+      <ConfirmDialog
+        open={pendingStatus !== null}
+        title="ステータスを変更"
+        message={`「${task.title}」を「${pendingStatus}」に変更しますか？`}
+        confirmLabel={`${pendingStatus}にする`}
+        onConfirm={confirmStatusChange}
+        onCancel={() => setPendingStatus(null)}
+      />
     </div>
   );
 }

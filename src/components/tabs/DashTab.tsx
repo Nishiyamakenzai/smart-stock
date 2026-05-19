@@ -4,9 +4,9 @@ import Bar from "../ui/Bar";
 import Gauge from "../ui/Gauge";
 import SimpleChart from "../ui/SimpleChart";
 import { C, CHART_COLORS } from "@/lib/constants";
-import { PREV, PREV2, YAMANASHI_MUNICIPALITIES } from "@/lib/data";
+import { YAMANASHI_MUNICIPALITIES } from "@/lib/data";
 import { fmt1, fmtPct } from "@/lib/utils";
-import type { ComputedData, Targets, AIHint, Project, ShareRateState } from "@/lib/types";
+import type { ComputedData, Targets, AIHint, Project, ShareRateState, PrevPeriod } from "@/lib/types";
 
 interface DashTabProps {
   comp: ComputedData;
@@ -16,9 +16,12 @@ interface DashTabProps {
   projects: Project[];
   shareRate: ShareRateState;
   onGoShare: () => void;
+  prev: PrevPeriod;
+  prev2: PrevPeriod;
+  onEditPrev: () => void;
 }
 
-export default function DashTab({ comp, targets, aiHints, onOpenFixed, projects, shareRate, onGoShare }: DashTabProps) {
+export default function DashTab({ comp, targets, aiHints, onOpenFixed, projects, shareRate, onGoShare, prev, prev2, onEditPrev }: DashTabProps) {
   const gaps = [
     { l:"PQ 売上", cur:comp.totalPQ, tgt:targets.pq, c:C.blue,   unit:"万" },
     { l:"MQ 粗利", cur:comp.totalMQ, tgt:targets.mq, c:C.purple, unit:"万" },
@@ -26,11 +29,11 @@ export default function DashTab({ comp, targets, aiHints, onOpenFixed, projects,
     { l:"Q 件数",  cur:comp.totalQ,  tgt:targets.q,  c:C.yellow, unit:"件" },
   ];
   const cRows = [
-    { l:"PQ",    cur:comp.totalPQ, pv:PREV.pq,   p2:PREV2.pq },
-    { l:"MQ",    cur:comp.totalMQ, pv:PREV.mq,   p2:PREV2.mq },
-    { l:"G",     cur:comp.totalG,  pv:PREV.g,    p2:PREV2.g  },
-    { l:"Q",     cur:comp.totalQ,  pv:PREV.q,    p2:PREV2.q  },
-    { l:"平均P", cur:comp.avgP,    pv:PREV.avgP, p2:PREV2.avgP, dec:0 },
+    { l:"PQ",    cur:comp.totalPQ, pv:prev.pq,   p2:prev2.pq },
+    { l:"MQ",    cur:comp.totalMQ, pv:prev.mq,   p2:prev2.mq },
+    { l:"G",     cur:comp.totalG,  pv:prev.g,    p2:prev2.g  },
+    { l:"Q",     cur:comp.totalQ,  pv:prev.q,    p2:prev2.q  },
+    { l:"平均P", cur:comp.avgP,    pv:prev.avgP, p2:prev2.avgP, dec:0 },
   ];
   return (
     <>
@@ -96,7 +99,14 @@ export default function DashTab({ comp, targets, aiHints, onOpenFixed, projects,
         />
       </div>
       <div className="card stagger-item">
-        <div className="section-title">期別比較</div>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
+          <div className="section-title" style={{ margin:0 }}>期別比較</div>
+          <button onClick={onEditPrev} style={{
+            fontSize:11, fontWeight:600, color:C.blue,
+            background:C.blueLight, border:`1px solid #bfdbfe`,
+            borderRadius:8, padding:"4px 10px", cursor:"pointer",
+          }}>前期・前々期を編集</button>
+        </div>
         <div style={{ overflowX:"auto" }}>
           <table className="data-table">
             <thead><tr><th>項目</th><th>前々期</th><th>前期</th><th style={{color:C.blue}}>今期</th><th>前期比</th></tr></thead>
