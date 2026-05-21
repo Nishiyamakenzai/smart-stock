@@ -112,14 +112,23 @@ export default function DashTab({ comp, targets, aiHints, onOpenFixed, projects,
             <thead><tr><th>項目</th><th>前々期</th><th>前期</th><th style={{color:C.blue}}>今期</th><th>前期比</th></tr></thead>
             <tbody>
               {cRows.map(r => {
-                const gr = r.pv != null ? (r.cur - r.pv) / r.pv * 100 : null;
+                // 前期比の計算：前期がマイナスのとき符号反転を防ぐために絶対値を分母に使う
+                // 符号が変わる場合は「黒字転換」「赤字転落」を表示
+                const pvNeg = r.pv < 0, curNeg = r.cur < 0;
+                const signFlip = pvNeg !== curNeg;
+                const gr = r.pv !== 0 ? (r.cur - r.pv) / Math.abs(r.pv) * 100 : null;
+                const isGood = signFlip ? !curNeg : (gr != null && gr >= 0);
                 return (
                   <tr key={r.l}>
                     <td>{r.l}</td>
                     <td style={{color:C.t3}}>{r.p2 != null ? fmt1(r.p2) : "—"}</td>
-                    <td style={{color:C.t2}}>{r.pv != null ? fmt1(r.pv) : "—"}</td>
+                    <td style={{color:pvNeg ? C.red : C.t2}}>{r.pv != null ? fmt1(r.pv) : "—"}</td>
                     <td style={{color:C.blue,fontWeight:800}}>{fmt1(r.cur)}</td>
-                    <td>{gr!=null&&<span style={{display:"inline-block",padding:"2px 8px",borderRadius:99,fontSize:11,fontWeight:700,background:gr>=0?C.greenLight:C.redLight,color:gr>=0?C.greenDark:C.red}}>{gr>=0?"+":""}{fmtPct(gr)}%</span>}</td>
+                    <td>{r.pv != null && <span style={{display:"inline-block",padding:"2px 8px",borderRadius:99,fontSize:11,fontWeight:700,background:isGood?C.greenLight:C.redLight,color:isGood?C.greenDark:C.red}}>
+                      {signFlip
+                        ? (isGood ? "黒字転換" : "赤字転落")
+                        : `${isGood?"+":""}${fmtPct(gr!)}%`}
+                    </span>}</td>
                   </tr>
                 );
               })}
