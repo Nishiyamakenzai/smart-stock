@@ -14,7 +14,6 @@ import BSModal from "./modals/BSModal";
 import PrevModal from "./modals/PrevModal";
 import { DEMO_PROJECTS, DEMO_MF, DEFAULT_AB, DEFAULT_TARGETS, DEFAULT_BS, DEFAULT_SHARE_RATE, PREV, PREV2, migrateMF, migrateAB } from "@/lib/data";
 import { computeData, aiOverall } from "@/lib/utils";
-import { exportToExcel } from "@/lib/exportExcel";
 import type { Project, MonthlyFixed, AnnualBudget, Targets, BSData, ShareRateState, PrevPeriod } from "@/lib/types";
 
 type Tab = "dash" | "proj" | "month" | "analysis" | "bs" | "share";
@@ -171,7 +170,7 @@ export default function MQDashboard({ onLogout }: { onLogout: () => void }) {
             </button>
           ))}
           <button
-            onClick={() => exportToExcel({ projects, comp, targets, bs, shareRate, prev, prev2, mf, ab })}
+            onClick={() => window.open("/api/export", "_blank")}
             style={{
               marginLeft:"auto", flexShrink:0, padding:"6px 12px",
               background:"#16a34a", color:"#fff", border:"none",
