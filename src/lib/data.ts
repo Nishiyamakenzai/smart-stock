@@ -1,7 +1,7 @@
 import type {
   Project, MonthlyFixed, AnnualBudget, Targets, BSData, PrevPeriod,
   VBreak, FixedCosts, F1Items, F2Items, F3Items, F4Items, F5Items,
-  Municipality, ShareRateState,
+  Municipality, ShareRateState, PromoBudgetItem, PromoPlanData,
 } from "./types";
 
 // ── デフォルト値ファクトリ ─────────────────────────────────────
@@ -177,4 +177,15 @@ export const defaultMF = (base?: Partial<MonthlyFixed>): MonthlyFixed => {
   const m: MonthlyFixed = {};
   for (let i = 0; i < 12; i++) m[i] = base?.[i] ?? defaultFixedCosts();
   return m;
+};
+
+// ── 販促計画デフォルト値 ───────────────────────────────────────
+export const defaultPromoBudgetItem = (): PromoBudgetItem => ({
+  adWeb: 0, adFlyer: 0, adPortal: 0, adSign: 0, adYoutube: 0, event: 0, other: 0,
+});
+
+export const DEFAULT_PROMO_PLAN: PromoPlanData = {
+  monthly: Object.fromEntries(
+    Array.from({ length: 12 }, (_, i) => [i, defaultPromoBudgetItem()])
+  ),
 };
