@@ -475,7 +475,8 @@ export default function PromoPlanTab({ plan, mf, onChange }: Props) {
                 <YAxis tick={{ fontSize: 10, fill: C.t2 }} />
                 <Tooltip
                   contentStyle={{ fontSize: 11, borderRadius: 8, border: `1px solid ${C.bdr}` }}
-                  formatter={(v: number) => [`${fmt1(v)}万`, ""]}
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  formatter={(v: any) => [`${fmt1(Number(v ?? 0))}万`, ""]}
                 />
                 <Legend iconSize={10} wrapperStyle={{ fontSize: 11 }} />
                 <Bar dataKey="予算" fill={C.blue} radius={[3, 3, 0, 0]} barSize={12} />
@@ -499,7 +500,8 @@ export default function PromoPlanTab({ plan, mf, onChange }: Props) {
                     paddingAngle={2}
                     dataKey="value"
                     nameKey="name"
-                    label={({ name, percent }: { name: string; percent: number }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    label={({ name, percent }: any) => name && percent != null ? `${name} ${(percent * 100).toFixed(0)}%` : ""}
                     labelLine={false}
                   >
                     {chartCat.map((entry, i) => (
@@ -508,7 +510,8 @@ export default function PromoPlanTab({ plan, mf, onChange }: Props) {
                   </Pie>
                   <Tooltip
                     contentStyle={{ fontSize: 11, borderRadius: 8, border: `1px solid ${C.bdr}` }}
-                    formatter={(v: number) => [`${fmt1(v)}万`, ""]}
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  formatter={(v: any) => [`${fmt1(Number(v ?? 0))}万`, ""]}
                   />
                 </PieChart>
               </ResponsiveContainer>
