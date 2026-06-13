@@ -7,17 +7,18 @@ import MonthTab from "./tabs/MonthTab";
 import AnalysisTab from "./tabs/AnalysisTab";
 import BSTab from "./tabs/BSTab";
 import ShareRateTab from "./tabs/ShareRateTab";
+import PromoPlanTab from "./tabs/PromoPlanTab";
 import ProjectModal from "./modals/ProjectModal";
 import FixedModal from "./modals/FixedModal";
 import TargetModal from "./modals/TargetModal";
 import BSModal from "./modals/BSModal";
 import PrevModal from "./modals/PrevModal";
-import { DEMO_PROJECTS, DEMO_MF, DEFAULT_AB, DEFAULT_TARGETS, DEFAULT_BS, DEFAULT_SHARE_RATE, PREV, PREV2, migrateMF, migrateAB } from "@/lib/data";
+import { DEMO_PROJECTS, DEMO_MF, DEFAULT_AB, DEFAULT_TARGETS, DEFAULT_BS, DEFAULT_SHARE_RATE, DEFAULT_PROMO_PLAN, PREV, PREV2, migrateMF, migrateAB } from "@/lib/data";
 import { computeData, aiOverall } from "@/lib/utils";
-import type { Project, MonthlyFixed, AnnualBudget, Targets, BSData, ShareRateState, PrevPeriod } from "@/lib/types";
+import type { Project, MonthlyFixed, AnnualBudget, Targets, BSData, ShareRateState, PrevPeriod, PromoPlanData } from "@/lib/types";
 
-type Tab = "dash" | "proj" | "month" | "analysis" | "bs" | "share";
-const TABS: [Tab, string][] = [["dash","総合"], ["proj","案件"], ["month","月次"], ["analysis","分析"], ["bs","B/S"], ["share","シェア率"]];
+type Tab = "dash" | "proj" | "month" | "analysis" | "bs" | "share" | "promo";
+const TABS: [Tab, string][] = [["dash","総合"], ["proj","案件"], ["month","月次"], ["analysis","分析"], ["bs","B/S"], ["share","シェア率"], ["promo","販促計画"]];
 
 export default function MQDashboard({ onLogout }: { onLogout: () => void }) {
   // データ状態（初期値はデモデータ、マウント後にAPIから上書き）
@@ -29,6 +30,7 @@ export default function MQDashboard({ onLogout }: { onLogout: () => void }) {
   const [shareRate, setShareRate] = useState<ShareRateState>(DEFAULT_SHARE_RATE);
   const [prev, setPrev] = useState<PrevPeriod>(PREV);
   const [prev2, setPrev2] = useState<PrevPeriod>(PREV2);
+  const [promoPlan, setPromoPlan] = useState<PromoPlanData>(DEFAULT_PROMO_PLAN);
   const [dataLoaded, setDataLoaded] = useState(false);
   const [loadError, setLoadError] = useState(false);
   // saveEnabled は DB からの正常ロード後のみ true にする（エラー時に初期デモデータを上書き保存しないための安全弁）
@@ -62,6 +64,7 @@ export default function MQDashboard({ onLogout }: { onLogout: () => void }) {
         if (d["mq-share"])    setShareRate(d["mq-share"]);
         if (d["mq-prev"])     setPrev(d["mq-prev"]);
         if (d["mq-prev2"])    setPrev2(d["mq-prev2"]);
+        if (d["mq-promo"])    setPromoPlan(d["mq-promo"]);
         // DB から正常に取得できた場合のみ保存を有効化
         setSaveEnabled(true);
       })
@@ -97,6 +100,7 @@ export default function MQDashboard({ onLogout }: { onLogout: () => void }) {
   useEffect(() => { if (saveEnabled) debouncedSave("mq-share", shareRate); },  [shareRate, saveEnabled, debouncedSave]);
   useEffect(() => { if (saveEnabled) debouncedSave("mq-prev",  prev); },       [prev,  saveEnabled, debouncedSave]);
   useEffect(() => { if (saveEnabled) debouncedSave("mq-prev2", prev2); },      [prev2, saveEnabled, debouncedSave]);
+  useEffect(() => { if (saveEnabled) debouncedSave("mq-promo", promoPlan); },  [promoPlan, saveEnabled, debouncedSave]);
 
   // ── 計算 ──────────────────────────────────────────────────
   const comp = useMemo(() => computeData(projects, mf), [projects, mf]);
@@ -190,6 +194,7 @@ export default function MQDashboard({ onLogout }: { onLogout: () => void }) {
         {tab==="analysis" && <AnalysisTab comp={comp} targets={targets} projects={projects}/>}
         {tab==="bs"       && <BSTab bs={bs} onEdit={() => setShowBM(true)}/>}
         {tab==="share"    && <ShareRateTab projects={projects} shareRate={shareRate} onChange={setShareRate}/>}
+        {tab==="promo"    && <PromoPlanTab plan={promoPlan} mf={mf} onChange={setPromoPlan}/>}
       </div>
 
       {showPM && <ProjectModal project={editP} onSave={handleSaveProject} onClose={() => { setShowPM(false); setEditP(null); }} onDelete={editP ? id => setProjects(prev => prev.filter(p=>p.id!==id)) : undefined}/>}

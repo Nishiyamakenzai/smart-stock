@@ -160,3 +160,22 @@ export interface PrevPeriod {
   q: number;
   avgP: number;
 }
+
+// ── 販促計画 ─────────────────────────────────────────────────
+// F3（戦略費）の広告項目に対応したカテゴリ＋独自カテゴリ
+// ゆくゆくはCoatexの固定費→販促費と連動させる想定
+export interface PromoBudgetItem {
+  adWeb: number;     // ウェブ広告
+  adFlyer: number;   // チラシ・DM
+  adPortal: number;  // ポータルサイト
+  adSign: number;    // 看板・広報
+  adYoutube: number; // YouTube・SNS
+  event: number;     // イベント・展示会（将来Coatex連携用）
+  other: number;     // その他
+}
+
+export type MonthlyPromoBudget = Record<number, PromoBudgetItem>; // 0-11（期首12月始まり）
+
+export interface PromoPlanData {
+  monthly: MonthlyPromoBudget;
+}
