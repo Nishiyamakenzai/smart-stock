@@ -178,4 +178,5 @@ export type MonthlyPromoBudget = Record<number, PromoBudgetItem>; // 0-11（期�
 
 export interface PromoPlanData {
   monthly: MonthlyPromoBudget;
+  annualTarget: number; // ユーザーが自由設定する年間目標予算
 }

@@ -188,4 +188,5 @@ export const DEFAULT_PROMO_PLAN: PromoPlanData = {
   monthly: Object.fromEntries(
     Array.from({ length: 12 }, (_, i) => [i, defaultPromoBudgetItem()])
   ),
+  annualTarget: 0,
 };

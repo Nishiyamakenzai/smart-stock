@@ -13,7 +13,7 @@ import FixedModal from "./modals/FixedModal";
 import TargetModal from "./modals/TargetModal";
 import BSModal from "./modals/BSModal";
 import PrevModal from "./modals/PrevModal";
-import { DEMO_PROJECTS, DEMO_MF, DEFAULT_AB, DEFAULT_TARGETS, DEFAULT_BS, DEFAULT_SHARE_RATE, DEFAULT_PROMO_PLAN, PREV, PREV2, migrateMF, migrateAB } from "@/lib/data";
+import { DEMO_PROJECTS, DEMO_MF, DEFAULT_AB, DEFAULT_TARGETS, DEFAULT_BS, DEFAULT_SHARE_RATE, DEFAULT_PROMO_PLAN, PREV, PREV2, migrateMF, migrateAB, defaultF3, defaultFixedCosts } from "@/lib/data";
 import { computeData, aiOverall } from "@/lib/utils";
 import type { Project, MonthlyFixed, AnnualBudget, Targets, BSData, ShareRateState, PrevPeriod, PromoPlanData } from "@/lib/types";
 
@@ -106,6 +106,30 @@ export default function MQDashboard({ onLogout }: { onLogout: () => void }) {
   const comp = useMemo(() => computeData(projects, mf), [projects, mf]);
   const aiHints = useMemo(() => aiOverall(comp, targets), [comp, targets]);
 
+  // 販促計画変更時に F3 戦略費の広告項目へリアルタイム連動
+  const handlePromoChange = useCallback((plan: PromoPlanData) => {
+    setPromoPlan(plan);
+    setMf(prev => {
+      const next: MonthlyFixed = {};
+      for (let m = 0; m < 12; m++) {
+        const item = plan.monthly[m];
+        next[m] = {
+          ...(prev[m] ?? defaultFixedCosts()),
+          f3: {
+            ...(prev[m]?.f3 ?? defaultF3()),
+            adWeb:     item?.adWeb     ?? 0,
+            adFlyer:   item?.adFlyer   ?? 0,
+            adPortal:  item?.adPortal  ?? 0,
+            adSign:    item?.adSign    ?? 0,
+            adYoutube: item?.adYoutube ?? 0,
+            other:     item?.other     ?? 0,
+          },
+        };
+      }
+      return next;
+    });
+  }, []);
+
   const handleSaveProject = (p: Project) => {
     if (editP) setProjects(prev => prev.map(x => x.id===editP.id ? {...p,id:editP.id} : x));
     else { const newId = Math.max(0,...projects.map(x=>x.id))+1; setProjects(prev => [...prev,{...p,id:newId}]); }
@@ -194,7 +218,7 @@ export default function MQDashboard({ onLogout }: { onLogout: () => void }) {
         {tab==="analysis" && <AnalysisTab comp={comp} targets={targets} projects={projects}/>}
         {tab==="bs"       && <BSTab bs={bs} onEdit={() => setShowBM(true)}/>}
         {tab==="share"    && <ShareRateTab projects={projects} shareRate={shareRate} onChange={setShareRate}/>}
-        {tab==="promo"    && <PromoPlanTab plan={promoPlan} mf={mf} onChange={setPromoPlan}/>}
+        {tab==="promo"    && <PromoPlanTab plan={promoPlan} mf={mf} targets={targets} onChange={handlePromoChange}/>}
       </div>
 
       {showPM && <ProjectModal project={editP} onSave={handleSaveProject} onClose={() => { setShowPM(false); setEditP(null); }} onDelete={editP ? id => setProjects(prev => prev.filter(p=>p.id!==id)) : undefined}/>}
