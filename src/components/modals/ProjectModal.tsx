@@ -16,7 +16,7 @@ interface ProjectModalProps {
 }
 
 export default function ProjectModal({ project, onSave, onClose, onDelete }: ProjectModalProps) {
-  const [f, setF] = useState<Project>(project || {id:0, name:"", month:4, p:190, v:newV(), status:"契約済"});
+  const [f, setF] = useState<Project>(project || {id:0, name:"", month:4, p:190, v:newV(), status:"契約済", nextYear:false});
   const tv = totalV(f.v), m = f.p - tv;
   const mr = f.p > 0 ? m / f.p * 100 : 0;
   const hints = f.name ? aiProject(f) : [];
@@ -40,9 +40,37 @@ export default function ProjectModal({ project, onSave, onClose, onDelete }: Pro
           />
         </div>
 
+        {/* 今期 / 来期 トグル */}
+        <div style={{ display:"flex", background:C.card3, borderRadius:10, padding:3 }}>
+          {([false, true] as const).map(isNext => (
+            <button key={String(isNext)} onClick={() => setF({...f, nextYear:isNext})} style={{
+              flex:1, padding:"7px 4px", border:"none", borderRadius:7,
+              fontSize:12, fontWeight:700, cursor:"pointer",
+              background: f.nextYear===isNext ? "#fff" : "transparent",
+              color: f.nextYear===isNext ? (isNext ? C.orange : C.blue) : C.t2,
+              boxShadow: f.nextYear===isNext ? "0 1px 4px rgba(0,0,0,.08)" : "none",
+              transition:"all .15s",
+            }}>
+              {isNext ? "来期の施工" : "今期の施工"}
+            </button>
+          ))}
+        </div>
+
+        {f.nextYear && (
+          <div style={{
+            padding:"9px 12px", borderRadius:9,
+            background:C.yellowLight, border:`1px solid ${C.yellow}`,
+            fontSize:11, color:"#92400e", fontWeight:600,
+          }}>
+            来期の施工として登録します。今期の売上・粗利の集計には含まれません。
+          </div>
+        )}
+
         <div className="modal-3col" style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8 }}>
           <div>
-            <label style={{ fontSize:12, color:C.t2, fontWeight:600, display:"block", marginBottom:5 }}>施工月</label>
+            <label style={{ fontSize:12, color:C.t2, fontWeight:600, display:"block", marginBottom:5 }}>
+              施工月{f.nextYear && <span style={{ color:C.orange, marginLeft:4 }}>（来期）</span>}
+            </label>
             <select value={f.month} onChange={e => setF({...f, month:+e.target.value})} style={selectStyle as React.CSSProperties}>
               {MS.map((m2,i) => <option key={i} value={i}>{m2}</option>)}
             </select>

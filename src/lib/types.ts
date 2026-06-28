@@ -18,6 +18,7 @@ export interface Project {
   status: string;
   area?: string;
   contractDate?: string; // "YYYY-MM" 形式（契約年月）
+  nextYear?: boolean;    // 来期施工フラグ（今期の集計に含めない）
 }
 
 export interface Municipality {

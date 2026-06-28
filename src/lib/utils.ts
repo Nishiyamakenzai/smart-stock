@@ -12,7 +12,7 @@ export const fmtPct = (v: number): string => (Math.round(v * 10) / 10).toFixed(1
 
 export function computeData(projects: Project[], mf: MonthlyFixed): ComputedData {
   const md = MS.map((_, i) => {
-    const ps = projects.filter(p => p.month === i);
+    const ps = projects.filter(p => p.month === i && !p.nextYear);
     const pq = ps.reduce((s, p) => s + p.p, 0);
     const vq = ps.reduce((s, p) => s + totalV(p.v), 0);
     const mq = pq - vq, q = ps.length;
