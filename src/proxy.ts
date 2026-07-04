@@ -2,12 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { verifyToken, COOKIE_NAME } from "@/lib/auth";
 
 /**
- * Proxy (Edge): /api/data/* へのリクエストを保護
+ * Proxy (Edge): /api/data/*, /api/evaluation/* へのリクエストを保護
  * 有効なJWTクッキーがない場合は401を返す
  * /api/auth/* は認証不要（ログイン・セットアップ用）
  */
 export const config = {
-  matcher: ["/api/data/:path*"],
+  matcher: ["/api/data/:path*", "/api/evaluation/:path*"],
 };
 
 export async function proxy(req: NextRequest) {
