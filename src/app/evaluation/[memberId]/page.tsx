@@ -59,7 +59,7 @@ export default function EmployeeDetailPage() {
   useEffect(() => { load(); }, [load]);
 
   const handleSaveProfile = async () => {
-    await fetch(`/api/evaluation/profiles/${memberId}`, {
+    const res = await fetch(`/api/evaluation/profiles/${memberId}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -72,6 +72,11 @@ export default function EmployeeDetailPage() {
         excluded,
       }),
     });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      alert("保存に失敗しました: " + (err.error ?? `HTTP ${res.status}`));
+      return;
+    }
     setEditingProfile(false);
     load();
   };
