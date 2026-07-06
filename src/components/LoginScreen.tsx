@@ -4,11 +4,29 @@ import { useState } from "react";
 interface Props {
   mode: "login" | "setup";
   onLogin: () => void;
+  basePath?: string;
+  icon?: string;
+  brandTitle?: string;
+  brandTagline?: string;
+  brandSub?: string;
+  companyLine?: string;
+  setupFooterText?: string;
+  loginFooterText?: string;
 }
 
 type ResetStep = "email" | "code";
 
-export default function LoginScreen({ mode, onLogin }: Props) {
+export default function LoginScreen({
+  mode, onLogin,
+  basePath = "/api/auth",
+  icon = "🎨",
+  brandTitle = "COATEX",
+  brandTagline = "経営を、塗り替えろ。",
+  brandSub = "SMART COATING & BUSINESS SOLUTIONS",
+  companyLine = "西山建材工業",
+  setupFooterText = "設定したID・パスワードを社員全員で共有してください",
+  loginFooterText = "会社共有アカウントでログインしてください",
+}: Props) {
   const [id, setId] = useState("");
   const [pw, setPw] = useState("");
   const [err, setErr] = useState("");
@@ -30,7 +48,7 @@ export default function LoginScreen({ mode, onLogin }: Props) {
     if (pw.length < 4) { setErr("パスワードは4文字以上で入力してください"); return; }
     setLoading(true); setErr("");
     try {
-      const res = await fetch("/api/auth/setup", {
+      const res = await fetch(`${basePath}/setup`, {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id, pw }),
       });
@@ -45,7 +63,7 @@ export default function LoginScreen({ mode, onLogin }: Props) {
     if (!id || !pw) { setErr("ID・パスワードを入力してください"); return; }
     setLoading(true); setErr("");
     try {
-      const res = await fetch("/api/auth/login", {
+      const res = await fetch(`${basePath}/login`, {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id, pw }),
       });
@@ -61,7 +79,7 @@ export default function LoginScreen({ mode, onLogin }: Props) {
     if (!resetEmail) { setErr("メールアドレスを入力してください"); return; }
     setLoading(true); setErr("");
     try {
-      const res = await fetch("/api/auth/reset-request", {
+      const res = await fetch(`${basePath}/reset-request`, {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: resetEmail }),
       });
@@ -80,7 +98,7 @@ export default function LoginScreen({ mode, onLogin }: Props) {
     if (newPw !== newPw2) { setErr("パスワードが一致しません"); return; }
     setLoading(true); setErr("");
     try {
-      const res = await fetch("/api/auth/reset-confirm", {
+      const res = await fetch(`${basePath}/reset-confirm`, {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ otp, newId, newPw }),
       });
@@ -131,11 +149,11 @@ export default function LoginScreen({ mode, onLogin }: Props) {
             boxShadow:"0 6px 20px rgba(29,78,216,.45)",
             fontSize:13, fontWeight:900, color:"#fff", letterSpacing:0.5,
             border:"2px solid rgba(255,255,255,.15)",
-          }}>🎨</div>
-          <div style={{ fontSize:26, fontWeight:900, color:"#0f172a", letterSpacing:"-0.5px", lineHeight:1 }}>COATEX</div>
-          <div style={{ fontSize:11, fontWeight:700, color:"#f97316", marginTop:5, letterSpacing:0.5 }}>経営を、塗り替えろ。</div>
-          <div style={{ fontSize:9, color:"#94a3b8", fontWeight:600, marginTop:3, letterSpacing:1 }}>SMART COATING &amp; BUSINESS SOLUTIONS</div>
-          <div style={{ fontSize:10, color:"#94a3b8", marginTop:6 }}>西山建材工業</div>
+          }}>{icon}</div>
+          <div style={{ fontSize:26, fontWeight:900, color:"#0f172a", letterSpacing:"-0.5px", lineHeight:1 }}>{brandTitle}</div>
+          <div style={{ fontSize:11, fontWeight:700, color:"#f97316", marginTop:5, letterSpacing:0.5 }}>{brandTagline}</div>
+          <div style={{ fontSize:9, color:"#94a3b8", fontWeight:600, marginTop:3, letterSpacing:1 }}>{brandSub}</div>
+          <div style={{ fontSize:10, color:"#94a3b8", marginTop:6 }}>{companyLine}</div>
           <div style={{
             display:"inline-block", marginTop:10, padding:"4px 14px",
             background: showReset ? "#fff7ed" : "#eff6ff",
@@ -297,8 +315,8 @@ export default function LoginScreen({ mode, onLogin }: Props) {
         {!showReset && (
           <div style={{ marginTop:20, textAlign:"center" }}>
             {mode === "setup"
-              ? <p style={{ fontSize:11, color:"#94a3b8" }}>設定したID・パスワードを社員全員で共有してください</p>
-              : <p style={{ fontSize:11, color:"#94a3b8" }}>会社共有アカウントでログインしてください</p>
+              ? <p style={{ fontSize:11, color:"#94a3b8" }}>{setupFooterText}</p>
+              : <p style={{ fontSize:11, color:"#94a3b8" }}>{loginFooterText}</p>
             }
           </div>
         )}

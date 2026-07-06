@@ -7,6 +7,9 @@ const AUDIENCE = "mq-dashboard";
 export const COOKIE_NAME = "mq-token";
 export const COOKIE_MAX_AGE = 60 * 60 * 24 * 30; // 30日
 
+// 評価制度専用の別セッション（COATEXの共有パスワードとは独立させる）
+export const EVAL_COOKIE_NAME = "eval-token";
+
 /** JWTを発行する */
 export async function signToken(payload: { id: string }): Promise<string> {
   return new SignJWT(payload)
@@ -32,9 +35,9 @@ export async function verifyToken(token: string): Promise<{ id: string } | null>
 }
 
 /** ログイン用Cookieヘッダー文字列を生成 */
-export function buildCookieHeader(token: string): string {
+export function buildCookieHeader(token: string, cookieName: string = COOKIE_NAME): string {
   return [
-    `${COOKIE_NAME}=${token}`,
+    `${cookieName}=${token}`,
     `Max-Age=${COOKIE_MAX_AGE}`,
     "Path=/",
     "HttpOnly",
@@ -46,6 +49,6 @@ export function buildCookieHeader(token: string): string {
 }
 
 /** ログアウト用Cookie削除ヘッダー文字列を生成 */
-export function clearCookieHeader(): string {
-  return `${COOKIE_NAME}=; Max-Age=0; Path=/; HttpOnly; SameSite=Lax`;
+export function clearCookieHeader(cookieName: string = COOKIE_NAME): string {
+  return `${cookieName}=; Max-Age=0; Path=/; HttpOnly; SameSite=Lax`;
 }

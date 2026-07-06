@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import LoginScreen from "@/components/LoginScreen";
 
-function EvalNav() {
+function EvalNav({ onLogout }: { onLogout: () => void }) {
   const pathname = usePathname();
   const items = [
     { href: "/evaluation", label: "👥 一覧", exact: true },
@@ -17,7 +17,10 @@ function EvalNav() {
         <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
           <span style={{ fontSize: 18, fontWeight: 900, color: "#1e293b" }}>⛩️ 職人評価制度</span>
         </div>
-        <Link href="/" style={{ fontSize: 12, color: "#64748b", textDecoration: "none" }}>← ダッシュボードへ</Link>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <button onClick={onLogout} style={{ fontSize: 12, color: "#dc2626", background: "none", border: "none", cursor: "pointer" }}>ログアウト</button>
+          <Link href="/" style={{ fontSize: 12, color: "#64748b", textDecoration: "none" }}>← ダッシュボードへ</Link>
+        </div>
       </div>
       <div style={{ display: "flex", gap: 4, padding: "0 12px 10px" }}>
         {items.map((it) => {
@@ -42,7 +45,7 @@ export default function EvaluationLayout({ children }: { children: React.ReactNo
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
-    fetch("/api/auth/status")
+    fetch("/api/evaluation-auth/status")
       .then((r) => r.json())
       .then((data) => {
         setLoggedIn(data.loggedIn === true);
@@ -52,6 +55,11 @@ export default function EvaluationLayout({ children }: { children: React.ReactNo
       .finally(() => setHydrated(true));
   }, []);
 
+  const handleLogout = async () => {
+    await fetch("/api/evaluation-auth/logout", { method: "POST" });
+    setLoggedIn(false);
+  };
+
   if (!hydrated) {
     return (
       <div style={{ minHeight: "100vh", background: "#f0f4f8", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -60,11 +68,26 @@ export default function EvaluationLayout({ children }: { children: React.ReactNo
     );
   }
 
-  if (!loggedIn) return <LoginScreen mode={mode} onLogin={() => setLoggedIn(true)} />;
+  if (!loggedIn) {
+    return (
+      <LoginScreen
+        mode={mode}
+        onLogin={() => setLoggedIn(true)}
+        basePath="/api/evaluation-auth"
+        icon="⛩️"
+        brandTitle="職人評価制度"
+        brandTagline="評価データはここだけで管理"
+        brandSub="COATEXとは別のID・パスワードです"
+        companyLine="西山建材工業"
+        setupFooterText="このID・パスワードは評価権限を持つ担当者のみで管理してください"
+        loginFooterText="評価制度専用のログイン情報を入力してください"
+      />
+    );
+  }
 
   return (
     <div style={{ minHeight: "100vh", background: "#f8fafc" }}>
-      <EvalNav />
+      <EvalNav onLogout={handleLogout} />
       <div style={{ padding: "16px 16px 40px", maxWidth: 960, margin: "0 auto" }}>{children}</div>
     </div>
   );

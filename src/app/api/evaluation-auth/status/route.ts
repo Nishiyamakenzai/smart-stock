@@ -1,0 +1,24 @@
+import { NextResponse } from "next/server";
+
+export const dynamic = "force-dynamic";
+import { cookies } from "next/headers";
+import { verifyToken, EVAL_COOKIE_NAME } from "@/lib/auth";
+import { dbGet } from "@/lib/supabase";
+
+/**
+ * GET /api/evaluation-auth/status
+ * 評価制度専用ログイン状態と初回セットアップ状態を返す
+ */
+export async function GET() {
+  const authRow = await dbGet<{ id: string; passwordHash: string }>("evaluation_auth");
+  const mode = authRow ? "login" : "setup";
+
+  const cookieStore = await cookies();
+  const token = cookieStore.get(EVAL_COOKIE_NAME)?.value;
+  if (!token) {
+    return NextResponse.json({ loggedIn: false, mode });
+  }
+
+  const payload = await verifyToken(token);
+  return NextResponse.json({ loggedIn: !!payload, mode });
+}
