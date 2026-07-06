@@ -13,6 +13,11 @@ export async function GET() {
   const authRow = await dbGet<{ id: string; passwordHash: string }>("evaluation_auth");
   const mode = authRow ? "login" : "setup";
 
+  // アカウントが存在しない（=リセット済み）場合は、古いクッキーが残っていてもログイン扱いにしない
+  if (mode === "setup") {
+    return NextResponse.json({ loggedIn: false, mode });
+  }
+
   const cookieStore = await cookies();
   const token = cookieStore.get(EVAL_COOKIE_NAME)?.value;
   if (!token) {
