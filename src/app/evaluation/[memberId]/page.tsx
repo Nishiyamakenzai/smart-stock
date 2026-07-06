@@ -31,6 +31,8 @@ export default function EmployeeDetailPage() {
   const [dailyWage, setDailyWage] = useState("");
   const [joinDate, setJoinDate] = useState("");
   const [gradeOverride, setGradeOverride] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [excluded, setExcluded] = useState(false);
 
   const load = useCallback(async () => {
     const [profiles, evalRes, settingsRes] = await Promise.all([
@@ -48,6 +50,8 @@ export default function EmployeeDetailPage() {
       setDailyWage(emp.profile.daily_wage?.toString() ?? "");
       setJoinDate(emp.profile.join_date ?? "");
       setGradeOverride(emp.profile.grade_override?.toString() ?? "");
+      setFullName(emp.profile.full_name ?? "");
+      setExcluded(emp.profile.excluded ?? false);
     }
     setLoading(false);
   }, [memberId]);
@@ -64,6 +68,8 @@ export default function EmployeeDetailPage() {
         daily_wage: wageType === "daily" && dailyWage ? Number(dailyWage) : null,
         join_date: joinDate || null,
         grade_override: gradeOverride ? Number(gradeOverride) : null,
+        full_name: fullName.trim() || null,
+        excluded,
       }),
     });
     setEditingProfile(false);
@@ -84,6 +90,7 @@ export default function EmployeeDetailPage() {
   const halfYearGroups = buildHalfYearGroups(evals, settings);
   const evalsAsc = evals.slice().reverse();
   const latest = evals[0];
+  const displayName = employee.profile?.full_name || employee.name;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -92,10 +99,10 @@ export default function EmployeeDetailPage() {
           width: 48, height: 48, borderRadius: "50%", background: employee.color + "22",
           border: `2px solid ${employee.color}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
         }}>
-          <span style={{ fontSize: 18, fontWeight: 800, color: employee.color }}>{employee.name[0]}</span>
+          <span style={{ fontSize: 18, fontWeight: 800, color: employee.color }}>{displayName[0]}</span>
         </div>
         <div>
-          <div style={{ fontSize: 19, fontWeight: 800, color: "#1e293b" }}>{employee.name}</div>
+          <div style={{ fontSize: 19, fontWeight: 800, color: "#1e293b" }}>{displayName}</div>
           <div style={{ fontSize: 12, color: "#94a3b8" }}>{employee.role}</div>
         </div>
         <div style={{ marginLeft: "auto" }}>
@@ -115,6 +122,10 @@ export default function EmployeeDetailPage() {
         {!editingProfile ? (
           <div style={{ display: "flex", gap: 24, flexWrap: "wrap", fontSize: 13 }}>
             <div>
+              <div style={{ color: "#94a3b8", fontSize: 11 }}>氏名（印刷用フルネーム）</div>
+              <div style={{ fontWeight: 700, color: "#1e293b" }}>{employee.profile?.full_name || <span style={{ color: "#cbd5e1", fontWeight: 400 }}>未設定（{employee.name}を使用）</span>}</div>
+            </div>
+            <div>
               <div style={{ color: "#94a3b8", fontSize: 11 }}>給与形態</div>
               <div style={{ fontWeight: 700, color: "#1e293b" }}>
                 {employee.profile?.wage_type === "daily" ? `日給月給（日給 ${fmtYen(employee.profile?.daily_wage)}）` : `月給（${fmtYen(employee.profile?.monthly_salary)}）`}
@@ -128,9 +139,19 @@ export default function EmployeeDetailPage() {
               <div style={{ color: "#94a3b8", fontSize: 11 }}>入社年月</div>
               <div style={{ fontWeight: 700, color: "#1e293b" }}>{employee.profile?.join_date ?? "未設定"}</div>
             </div>
+            {employee.profile?.excluded && (
+              <div>
+                <div style={{ color: "#94a3b8", fontSize: 11 }}>状態</div>
+                <div style={{ fontWeight: 700, color: "#dc2626" }}>評価対象から除外中</div>
+              </div>
+            )}
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <div>
+              <label style={{ fontSize: 11, color: "#64748b" }}>氏名（印刷用フルネーム・未入力ならメンバー名を使用）</label>
+              <input style={inputStyle} value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="例: 西山 敦紀" />
+            </div>
             <div style={{ display: "flex", gap: 8 }}>
               <button onClick={() => setWageType("monthly")} style={{ flex: 1, padding: "8px", borderRadius: 8, border: `1.5px solid ${wageType === "monthly" ? "#2563eb" : "#e2e8f0"}`, background: wageType === "monthly" ? "#eff6ff" : "#fff", color: wageType === "monthly" ? "#2563eb" : "#64748b", fontWeight: 700, fontSize: 12, cursor: "pointer" }}>月給制</button>
               <button onClick={() => setWageType("daily")} style={{ flex: 1, padding: "8px", borderRadius: 8, border: `1.5px solid ${wageType === "daily" ? "#2563eb" : "#e2e8f0"}`, background: wageType === "daily" ? "#eff6ff" : "#fff", color: wageType === "daily" ? "#2563eb" : "#64748b", fontWeight: 700, fontSize: 12, cursor: "pointer" }}>日給月給制（×25日換算）</button>
@@ -157,6 +178,10 @@ export default function EmployeeDetailPage() {
                 {GRADES.map((g) => <option key={g.grade} value={g.grade}>等級{g.grade}・{g.name}</option>)}
               </select>
             </div>
+            <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "#334155", cursor: "pointer" }}>
+              <input type="checkbox" checked={excluded} onChange={(e) => setExcluded(e.target.checked)} />
+              評価対象から除外する（役員など評価制度の対象外にしたい場合）
+            </label>
             <button onClick={handleSaveProfile} style={{ padding: "9px", borderRadius: 10, border: "none", background: "#1e3a5f", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>保存</button>
           </div>
         )}
@@ -214,6 +239,7 @@ export default function EmployeeDetailPage() {
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 <span style={{ fontSize: 17, fontWeight: 800, color: e.total_score >= settings.perPeriodMin ? "#059669" : "#dc2626" }}>{e.total_score}点</span>
+                <Link href={`/evaluation/${memberId}/print/${e.id}`} style={{ fontSize: 11, color: "#2563eb", fontWeight: 700, textDecoration: "none" }}>🖨 印刷</Link>
                 <button onClick={() => handleDeleteEval(e.id)} style={{ fontSize: 11, color: "#dc2626", background: "none", border: "none", cursor: "pointer" }}>削除</button>
               </div>
             </div>

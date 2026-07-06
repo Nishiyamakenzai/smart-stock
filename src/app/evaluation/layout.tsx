@@ -12,7 +12,7 @@ function EvalNav({ onLogout }: { onLogout: () => void }) {
     { href: "/evaluation/settings", label: "⚙️ 判定基準", exact: false },
   ];
   return (
-    <div style={{ background: "#fff", borderBottom: "1px solid #e2e8f0", position: "sticky", top: 0, zIndex: 60 }}>
+    <div className="no-print" style={{ background: "#fff", borderBottom: "1px solid #e2e8f0", position: "sticky", top: 0, zIndex: 60 }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px" }}>
         <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
           <span style={{ fontSize: 18, fontWeight: 900, color: "#1e293b" }}>⛩️ 職人評価制度</span>

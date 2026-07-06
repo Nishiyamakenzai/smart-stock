@@ -257,6 +257,13 @@ select { -webkit-appearance: none; }
   .modal-2col { grid-template-columns: 1fr !important; }
 }
 
+/* ── Print (評価シート印刷用) ───────────── */
+@media print {
+  .no-print { display: none !important; }
+  body { background: #fff !important; }
+  .print-sheet { box-shadow: none !important; border: none !important; }
+}
+
 /* ── Stagger animation for lists ───────── */
 .stagger-item:nth-child(1)  { animation-delay: .03s; }
 .stagger-item:nth-child(2)  { animation-delay: .06s; }

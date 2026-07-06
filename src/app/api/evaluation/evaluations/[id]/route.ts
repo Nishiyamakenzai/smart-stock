@@ -3,6 +3,14 @@ import type { NextRequest } from "next/server";
 import { CRITERIA, computeTotal } from "@/lib/evaluation-constants";
 import type { ScoredCriterionKey } from "@/lib/evaluation-types";
 
+export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const sb = getSupabase();
+  const { data, error } = await sb.from("evaluations").select("*").eq("id", id).single();
+  if (error) return Response.json({ error: error.message }, { status: 404 });
+  return Response.json(data);
+}
+
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const body = await request.json();

@@ -10,6 +10,8 @@ export interface EvaluationProfile {
   daily_wage: number | null;     // 円
   join_date: string | null;
   grade_override: number | null;
+  excluded: boolean;
+  full_name: string | null;
   created_at: string;
   updated_at: string;
 }
