@@ -29,6 +29,7 @@ export default function LoginScreen({
 }: Props) {
   const [id, setId] = useState("");
   const [pw, setPw] = useState("");
+  const [pw2, setPw2] = useState("");
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -46,6 +47,7 @@ export default function LoginScreen({
   const handleSetup = async () => {
     if (id.length < 3) { setErr("IDは3文字以上で入力してください"); return; }
     if (pw.length < 4) { setErr("パスワードは4文字以上で入力してください"); return; }
+    if (pw !== pw2) { setErr("パスワードが一致しません"); return; }
     setLoading(true); setErr("");
     try {
       const res = await fetch(`${basePath}/setup`, {
@@ -289,8 +291,20 @@ export default function LoginScreen({
               <input type="password" value={pw} onChange={e => setPw(e.target.value)} onKeyDown={handleKeyDown}
                 placeholder="4文字以上"
                 className="input-base" style={inputStyle}
+                autoComplete={mode === "setup" ? "new-password" : "current-password"}
               />
             </div>
+
+            {mode === "setup" && (
+              <div>
+                <label style={{ fontSize:12, color:"#475569", fontWeight:600, display:"block", marginBottom:6 }}>パスワード（確認）</label>
+                <input type="password" value={pw2} onChange={e => setPw2(e.target.value)} onKeyDown={handleKeyDown}
+                  placeholder="もう一度入力"
+                  className="input-base" style={inputStyle}
+                  autoComplete="new-password"
+                />
+              </div>
+            )}
 
             {err && (
               <div style={{ padding:"10px 14px", background:"#fef2f2", border:"1px solid #fecaca", borderRadius:10, fontSize:13, color:"#dc2626", fontWeight:500 }}>
