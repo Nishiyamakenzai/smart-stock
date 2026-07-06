@@ -77,6 +77,8 @@ export default function EmployeeDetailPage() {
       alert("保存に失敗しました: " + (err.error ?? `HTTP ${res.status}`));
       return;
     }
+    const saved = await res.json().catch(() => null);
+    if (saved?.warning) alert(saved.warning);
     setEditingProfile(false);
     load();
   };
