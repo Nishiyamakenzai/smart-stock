@@ -40,6 +40,18 @@ export default function EvaluationListPage() {
     load();
   };
 
+  const handleExclude = async (e: React.MouseEvent, memberId: string, name: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!confirm(`${name} を評価対象から除外しますか？（一覧から非表示になります。後でいつでも戻せます）`)) return;
+    await fetch(`/api/evaluation/profiles/${memberId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ excluded: true }),
+    });
+    load();
+  };
+
   if (loading) return <div style={{ padding: 20, color: "#94a3b8", fontSize: 13 }}>読み込み中...</div>;
 
   const activeEmployees = employees.filter((e) => !e.profile?.excluded);
@@ -88,6 +100,13 @@ export default function EvaluationListPage() {
             ) : (
               <span style={{ fontSize: 11, color: "#cbd5e1" }}>評価なし</span>
             )}
+            <button
+              onClick={(e) => handleExclude(e, emp.id, displayName)}
+              title="評価対象から除外する"
+              style={{ fontSize: 11, color: "#cbd5e1", background: "none", border: "none", cursor: "pointer", padding: 4 }}
+            >
+              ✕
+            </button>
           </div>
         </div>
       </Link>
@@ -97,7 +116,7 @@ export default function EvaluationListPage() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <h1 style={{ fontSize: 18, fontWeight: 800, color: "#1e293b", margin: 0 }}>職人一覧</h1>
+        <h1 style={{ fontSize: 18, fontWeight: 800, color: "#1e293b", margin: 0 }}>スタッフ一覧</h1>
         <span style={{ fontSize: 12, color: "#94a3b8" }}>{activeEmployees.length}名</span>
       </div>
 
