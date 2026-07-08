@@ -1,10 +1,16 @@
 import { getSupabase } from "@/lib/supabase";
+import { withColumnFallback } from "@/lib/db-fallback";
 import type { NextRequest } from "next/server";
+
+const OPTIONAL_KEYS = ["excluded", "full_name", "job_type", "job_content_override"];
 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ memberId: string }> }) {
   const { memberId } = await params;
   const body = await request.json();
-  const { wage_type, monthly_salary, daily_wage, join_date, grade_override, excluded, full_name } = body;
+  const {
+    wage_type, monthly_salary, daily_wage, join_date, grade_override,
+    excluded, full_name, job_type, job_content_override,
+  } = body;
 
   if (wage_type && wage_type !== "monthly" && wage_type !== "daily") {
     return Response.json({ error: "wage_type must be 'monthly' or 'daily'" }, { status: 400 });
@@ -26,34 +32,24 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     grade_override: grade_override !== undefined ? grade_override : existing?.grade_override ?? null,
     excluded: excluded !== undefined ? excluded : existing?.excluded ?? false,
     full_name: full_name !== undefined ? full_name : existing?.full_name ?? null,
+    job_type: job_type !== undefined ? job_type : existing?.job_type ?? "craftsman",
+    job_content_override: job_content_override !== undefined ? job_content_override : existing?.job_content_override ?? null,
   };
 
-  let { data, error } = await sb
-    .from("evaluation_profiles")
-    .upsert(fullPayload, { onConflict: "member_id" })
-    .select()
-    .single();
-
-  // evaluation_schema_v2.sql (excluded / full_name カラム追加)が未実行の環境向けフォールバック。
-  // 新カラムが存在しない場合は、それらを除いた基本項目だけで保存を再試行する。
-  let missingNewColumns = false;
-  if (error && /schema cache|column/i.test(error.message) && /excluded|full_name/i.test(error.message)) {
-    missingNewColumns = true;
-    const { excluded: _excluded, full_name: _fullName, ...corePayload } = fullPayload;
-    const retry = await sb
-      .from("evaluation_profiles")
-      .upsert(corePayload, { onConflict: "member_id" })
-      .select()
-      .single();
-    data = retry.data;
-    error = retry.error;
-  }
+  const { data, error, droppedKeys } = await withColumnFallback(
+    OPTIONAL_KEYS,
+    fullPayload,
+    async (payload) => {
+      const r = await sb.from("evaluation_profiles").upsert(payload, { onConflict: "member_id" }).select().single();
+      return { data: r.data, error: r.error };
+    }
+  );
 
   if (error) return Response.json({ error: error.message }, { status: 500 });
-  if (missingNewColumns) {
+  if (droppedKeys.length > 0) {
     return Response.json({
       ...data,
-      warning: "excluded / full_name はデータベースに未追加のため保存されませんでした。supabase/evaluation_schema_v2.sql を実行してください。",
+      warning: `${droppedKeys.join(", ")} はデータベースに未追加のため保存されませんでした。supabase/evaluation_schema_v3.sql を実行してください。`,
     });
   }
   return Response.json(data);

@@ -4,8 +4,9 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import type { EmployeeWithProfile, Evaluation, EvaluationSettings, WageType } from "@/lib/evaluation-types";
 import { resolveGrade, monthlyEquivalentYen, buildHalfYearGroups, fmtYen } from "@/lib/evaluation-data";
-import { DEFAULT_EVALUATION_SETTINGS, CRITERIA } from "@/lib/evaluation-constants";
+import { DEFAULT_EVALUATION_SETTINGS, getCriteriaForJobType } from "@/lib/evaluation-constants";
 import { GRADES } from "@/lib/grades";
+import { JOB_TYPES, JOB_TYPE_LABELS, DEFAULT_JOB_TYPE, type JobType } from "@/lib/job-types";
 import GradeBadge from "@/components/evaluation/GradeBadge";
 import RadarChart from "@/components/evaluation/RadarChart";
 import EligibilityCard from "@/components/evaluation/EligibilityCard";
@@ -33,6 +34,8 @@ export default function EmployeeDetailPage() {
   const [gradeOverride, setGradeOverride] = useState("");
   const [fullName, setFullName] = useState("");
   const [excluded, setExcluded] = useState(false);
+  const [jobType, setJobType] = useState<JobType>(DEFAULT_JOB_TYPE);
+  const [jobContentOverride, setJobContentOverride] = useState("");
 
   const load = useCallback(async () => {
     const [profiles, evalRes, settingsRes] = await Promise.all([
@@ -52,6 +55,8 @@ export default function EmployeeDetailPage() {
       setGradeOverride(emp.profile.grade_override?.toString() ?? "");
       setFullName(emp.profile.full_name ?? "");
       setExcluded(emp.profile.excluded ?? false);
+      setJobType(emp.profile.job_type ?? DEFAULT_JOB_TYPE);
+      setJobContentOverride(emp.profile.job_content_override ?? "");
     }
     setLoading(false);
   }, [memberId]);
@@ -70,6 +75,8 @@ export default function EmployeeDetailPage() {
         grade_override: gradeOverride ? Number(gradeOverride) : null,
         full_name: fullName.trim() || null,
         excluded,
+        job_type: jobType,
+        job_content_override: jobContentOverride.trim() || null,
       }),
     });
     if (!res.ok) {
@@ -98,6 +105,9 @@ export default function EmployeeDetailPage() {
   const evalsAsc = evals.slice().reverse();
   const latest = evals[0];
   const displayName = employee.profile?.full_name || employee.name;
+  const currentJobType = employee.profile?.job_type ?? DEFAULT_JOB_TYPE;
+  const jobContentText = employee.profile?.job_content_override || grade?.jobContent || "";
+  const criteria = getCriteriaForJobType(currentJobType);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -146,10 +156,20 @@ export default function EmployeeDetailPage() {
               <div style={{ color: "#94a3b8", fontSize: 11 }}>入社年月</div>
               <div style={{ fontWeight: 700, color: "#1e293b" }}>{employee.profile?.join_date ?? "未設定"}</div>
             </div>
+            <div>
+              <div style={{ color: "#94a3b8", fontSize: 11 }}>職種</div>
+              <div style={{ fontWeight: 700, color: "#1e293b" }}>{JOB_TYPE_LABELS[currentJobType]}</div>
+            </div>
             {employee.profile?.excluded && (
               <div>
                 <div style={{ color: "#94a3b8", fontSize: 11 }}>状態</div>
                 <div style={{ fontWeight: 700, color: "#dc2626" }}>評価対象から除外中</div>
+              </div>
+            )}
+            {jobContentText && (
+              <div style={{ width: "100%" }}>
+                <div style={{ color: "#94a3b8", fontSize: 11 }}>仕事内容・責任範囲{employee.profile?.job_content_override ? "（個別設定）" : "（等級による自動表示）"}</div>
+                <div style={{ fontWeight: 500, color: "#334155", lineHeight: 1.6, marginTop: 2 }}>{jobContentText}</div>
               </div>
             )}
           </div>
@@ -185,6 +205,21 @@ export default function EmployeeDetailPage() {
                 {GRADES.map((g) => <option key={g.grade} value={g.grade}>等級{g.grade}・{g.name}</option>)}
               </select>
             </div>
+            <div>
+              <label style={{ fontSize: 11, color: "#64748b" }}>職種（評価項目のラベルが職種に合わせて切り替わります）</label>
+              <select style={inputStyle} value={jobType} onChange={(e) => setJobType(e.target.value as JobType)}>
+                {JOB_TYPES.map((jt) => <option key={jt} value={jt}>{JOB_TYPE_LABELS[jt]}</option>)}
+              </select>
+            </div>
+            <div>
+              <label style={{ fontSize: 11, color: "#64748b" }}>仕事内容・責任範囲（個別上書き・空欄なら等級の説明を使用）</label>
+              <textarea
+                style={{ ...inputStyle, minHeight: 70, resize: "vertical" }}
+                value={jobContentOverride}
+                onChange={(e) => setJobContentOverride(e.target.value)}
+                placeholder="例: 施工管理として現場統括、訪問営業、近隣あいさつ、定期点検を担当"
+              />
+            </div>
             <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "#334155", cursor: "pointer" }}>
               <input type="checkbox" checked={excluded} onChange={(e) => setExcluded(e.target.checked)} />
               評価対象から除外する（役員など評価制度の対象外にしたい場合）
@@ -216,7 +251,7 @@ export default function EmployeeDetailPage() {
       {latest && (
         <div style={{ background: "#fff", borderRadius: 14, border: "1px solid #e2e8f0", padding: 16 }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: "#1e293b", marginBottom: 10 }}>直近評価（{latest.period_label}）の項目別スコア</div>
-          <RadarChart points={CRITERIA.map((c) => ({ label: c.label, value: latest[c.key] }))} />
+          <RadarChart points={criteria.map((c) => ({ label: c.label, value: latest[c.key] }))} />
         </div>
       )}
 

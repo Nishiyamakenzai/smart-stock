@@ -1,4 +1,5 @@
 import { getSupabase } from "@/lib/supabase";
+import { withColumnFallback } from "@/lib/db-fallback";
 import type { NextRequest } from "next/server";
 import { CRITERIA, computeTotal } from "@/lib/evaluation-constants";
 import type { ScoredCriterionKey } from "@/lib/evaluation-types";
@@ -24,13 +25,21 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   for (const c of CRITERIA) scores[c.key] = merged[c.key];
   const total_score = computeTotal(scores, merged.score_attitude);
 
-  const { data, error } = await sb
-    .from("evaluations")
-    .update({ ...body, total_score })
-    .eq("id", id)
-    .select()
-    .single();
+  const { data, error, droppedKeys } = await withColumnFallback(
+    ["criteria_notes"],
+    { ...body, total_score },
+    async (payload) => {
+      const r = await sb.from("evaluations").update(payload).eq("id", id).select().single();
+      return { data: r.data, error: r.error };
+    }
+  );
   if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (droppedKeys.length > 0) {
+    return Response.json({
+      ...data,
+      warning: `${droppedKeys.join(", ")} はデータベースに未追加のため保存されませんでした。supabase/evaluation_schema_v3.sql を実行してください。`,
+    });
+  }
   return Response.json(data);
 }
 

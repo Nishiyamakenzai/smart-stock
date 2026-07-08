@@ -3,7 +3,7 @@ import { useEffect, useState, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import type { EmployeeWithProfile, ScoredCriterionKey } from "@/lib/evaluation-types";
 import { resolveGrade } from "@/lib/evaluation-data";
-import { CRITERIA, computeTotal } from "@/lib/evaluation-constants";
+import { CRITERIA, computeTotal, getCriteriaForJobType } from "@/lib/evaluation-constants";
 import ScorePicker from "@/components/evaluation/ScorePicker";
 
 const inputStyle: React.CSSProperties = {
@@ -38,6 +38,7 @@ export default function NewEvaluationPage() {
     () => Object.fromEntries(CRITERIA.map((c) => [c.key, 0])) as Record<ScoredCriterionKey, number>
   );
   const [attitude, setAttitude] = useState(0);
+  const [criteriaNotes, setCriteriaNotes] = useState<Record<string, string>>({});
 
   useEffect(() => {
     fetch("/api/evaluation/profiles").then((r) => r.json()).then((list: EmployeeWithProfile[]) => {
@@ -51,6 +52,9 @@ export default function NewEvaluationPage() {
 
   const grade = resolveGrade(employee.profile);
   const total = computeTotal(scores, attitude);
+  const criteria = getCriteriaForJobType(employee.profile?.job_type);
+
+  const setNoteFor = (key: string, text: string) => setCriteriaNotes((n) => ({ ...n, [key]: text }));
 
   const handleSubmit = async () => {
     if (!grade) {
@@ -71,6 +75,7 @@ export default function NewEvaluationPage() {
         score_attitude: attitude,
         evaluator: evaluator || null,
         note: note || null,
+        criteria_notes: criteriaNotes,
       }),
     });
     setSaving(false);
@@ -112,30 +117,48 @@ export default function NewEvaluationPage() {
 
       <div style={{ background: "#fff", borderRadius: 14, border: "1px solid #e2e8f0", padding: 16 }}>
         <div style={{ fontSize: 13, fontWeight: 700, color: "#1e293b", marginBottom: 4 }}>【能力評価】</div>
-        {CRITERIA.filter((c) => c.group === "ability").map((c) => (
+        {criteria.filter((c) => c.group === "ability").map((c) => (
           <div key={c.key} style={{ marginBottom: 14 }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: "#334155", marginBottom: 2 }}>{c.no}. {c.label}</div>
             <ul style={{ margin: "0 0 8px", paddingLeft: 18, fontSize: 11, color: "#94a3b8" }}>
               {c.points.map((p) => <li key={p}>{p}</li>)}
             </ul>
             <ScorePicker value={scores[c.key]} onChange={(v) => setScores((s) => ({ ...s, [c.key]: v }))} />
+            <input
+              style={{ ...inputStyle, marginTop: 6 }}
+              value={criteriaNotes[c.key] ?? ""}
+              onChange={(e) => setNoteFor(c.key, e.target.value)}
+              placeholder="コメント・評価理由（任意）"
+            />
           </div>
         ))}
 
         <div style={{ fontSize: 13, fontWeight: 700, color: "#1e293b", margin: "18px 0 4px" }}>【態度評価】（チームワーク・マナー・態度・顧客対応等）</div>
-        {CRITERIA.filter((c) => c.group === "attitude").map((c) => (
+        {criteria.filter((c) => c.group === "attitude").map((c) => (
           <div key={c.key} style={{ marginBottom: 14 }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: "#334155", marginBottom: 2 }}>{c.no}. {c.label}</div>
             <ul style={{ margin: "0 0 8px", paddingLeft: 18, fontSize: 11, color: "#94a3b8" }}>
               {c.points.map((p) => <li key={p}>{p}</li>)}
             </ul>
             <ScorePicker value={scores[c.key]} onChange={(v) => setScores((s) => ({ ...s, [c.key]: v }))} />
+            <input
+              style={{ ...inputStyle, marginTop: 6 }}
+              value={criteriaNotes[c.key] ?? ""}
+              onChange={(e) => setNoteFor(c.key, e.target.value)}
+              placeholder="コメント・評価理由（任意）"
+            />
           </div>
         ))}
 
         <div style={{ marginBottom: 4 }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: "#334155", marginBottom: 2 }}>9. 姿勢のルール <span style={{ fontWeight: 400, color: "#94a3b8" }}>（できて当たり前＝0〜-2点のみ、加点なし）</span></div>
           <ScorePicker value={attitude} onChange={setAttitude} attitudeOnly />
+          <input
+            style={{ ...inputStyle, marginTop: 6 }}
+            value={criteriaNotes.score_attitude ?? ""}
+            onChange={(e) => setNoteFor("score_attitude", e.target.value)}
+            placeholder="コメント・評価理由（任意）"
+          />
         </div>
       </div>
 

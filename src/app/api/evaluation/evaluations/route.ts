@@ -1,4 +1,5 @@
 import { getSupabase } from "@/lib/supabase";
+import { withColumnFallback } from "@/lib/db-fallback";
 import type { NextRequest } from "next/server";
 import { CRITERIA, computeTotal } from "@/lib/evaluation-constants";
 import type { ScoredCriterionKey } from "@/lib/evaluation-types";
@@ -17,7 +18,7 @@ export async function POST(request: NextRequest) {
   const body = await request.json();
   const {
     member_id, period_label, period_start, period_end, grade_at_evaluation,
-    score_attitude, note, evaluator,
+    score_attitude, note, evaluator, criteria_notes,
   } = body;
 
   if (!member_id || !period_label || !period_start || !period_end || !grade_at_evaluation) {
@@ -40,18 +41,31 @@ export async function POST(request: NextRequest) {
   const total_score = computeTotal(scores, attitude);
 
   const sb = getSupabase();
-  const { data, error } = await sb
-    .from("evaluations")
-    .insert({
-      member_id, period_label, period_start, period_end, grade_at_evaluation,
-      ...scores,
-      score_attitude: attitude,
-      total_score,
-      note: note ?? null,
-      evaluator: evaluator ?? null,
-    })
-    .select()
-    .single();
+  const fullPayload = {
+    member_id, period_label, period_start, period_end, grade_at_evaluation,
+    ...scores,
+    score_attitude: attitude,
+    total_score,
+    note: note ?? null,
+    evaluator: evaluator ?? null,
+    criteria_notes: criteria_notes && typeof criteria_notes === "object" ? criteria_notes : {},
+  };
+
+  const { data, error, droppedKeys } = await withColumnFallback(
+    ["criteria_notes"],
+    fullPayload,
+    async (payload) => {
+      const r = await sb.from("evaluations").insert(payload).select().single();
+      return { data: r.data, error: r.error };
+    }
+  );
+
   if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (droppedKeys.length > 0) {
+    return Response.json({
+      ...data,
+      warning: `${droppedKeys.join(", ")} はデータベースに未追加のため保存されませんでした。supabase/evaluation_schema_v3.sql を実行してください。`,
+    }, { status: 201 });
+  }
   return Response.json(data, { status: 201 });
 }

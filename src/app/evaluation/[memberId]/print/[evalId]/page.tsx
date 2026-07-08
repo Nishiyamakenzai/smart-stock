@@ -1,8 +1,8 @@
 "use client";
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import type { EmployeeWithProfile, Evaluation } from "@/lib/evaluation-types";
-import { CRITERIA, valueToLetter, SCORE_LABELS } from "@/lib/evaluation-constants";
+import { getCriteriaForJobType, valueToLetter, SCORE_LABELS } from "@/lib/evaluation-constants";
 import { getGradeInfo } from "@/lib/grades";
 
 export default function PrintEvaluationPage() {
@@ -29,8 +29,11 @@ export default function PrintEvaluationPage() {
 
   const displayName = employee.profile?.full_name || employee.name;
   const grade = getGradeInfo(evaluation.grade_at_evaluation);
-  const abilityCriteria = CRITERIA.filter((c) => c.group === "ability");
-  const attitudeCriteria = CRITERIA.filter((c) => c.group === "attitude");
+  const jobContentText = employee.profile?.job_content_override || grade.jobContent;
+  const criteria = getCriteriaForJobType(employee.profile?.job_type);
+  const abilityCriteria = criteria.filter((c) => c.group === "ability");
+  const attitudeCriteria = criteria.filter((c) => c.group === "attitude");
+  const notes = evaluation.criteria_notes ?? {};
 
   const cellStyle: React.CSSProperties = { border: "1px solid #cbd5e1", padding: "8px 10px", fontSize: 12, verticalAlign: "top" };
   const headCellStyle: React.CSSProperties = { ...cellStyle, background: "#f1f5f9", fontWeight: 700, whiteSpace: "nowrap" };
@@ -66,7 +69,7 @@ export default function PrintEvaluationPage() {
             </tr>
             <tr>
               <td style={headCellStyle}>仕事内容・責任範囲</td>
-              <td style={cellStyle} colSpan={3}>{grade.jobContent}</td>
+              <td style={cellStyle} colSpan={3}>{jobContentText}</td>
             </tr>
           </tbody>
         </table>
@@ -81,12 +84,20 @@ export default function PrintEvaluationPage() {
             {abilityCriteria.map((c) => {
               const v = evaluation[c.key];
               const letter = valueToLetter(v);
+              const cNote = notes[c.key];
               return (
-                <tr key={c.key}>
-                  <td style={{ ...headCellStyle, width: 110 }}>{c.no}. {c.label}</td>
-                  <td style={cellStyle}>{letter}（{SCORE_LABELS[letter]}）</td>
-                  <td style={{ ...cellStyle, width: 60, textAlign: "center", fontWeight: 800 }}>{v > 0 ? `+${v}` : v}点</td>
-                </tr>
+                <Fragment key={c.key}>
+                  <tr>
+                    <td style={{ ...headCellStyle, width: 110 }}>{c.no}. {c.label}</td>
+                    <td style={cellStyle}>{letter}（{SCORE_LABELS[letter]}）</td>
+                    <td style={{ ...cellStyle, width: 60, textAlign: "center", fontWeight: 800 }}>{v > 0 ? `+${v}` : v}点</td>
+                  </tr>
+                  {cNote && (
+                    <tr>
+                      <td style={{ ...cellStyle, background: "#fafafa", color: "#64748b", fontSize: 11 }} colSpan={3}>コメント: {cNote}</td>
+                    </tr>
+                  )}
+                </Fragment>
               );
             })}
           </tbody>
@@ -98,12 +109,20 @@ export default function PrintEvaluationPage() {
             {attitudeCriteria.map((c) => {
               const v = evaluation[c.key];
               const letter = valueToLetter(v);
+              const cNote = notes[c.key];
               return (
-                <tr key={c.key}>
-                  <td style={{ ...headCellStyle, width: 110 }}>{c.no}. {c.label}</td>
-                  <td style={cellStyle}>{letter}（{SCORE_LABELS[letter]}）</td>
-                  <td style={{ ...cellStyle, width: 60, textAlign: "center", fontWeight: 800 }}>{v > 0 ? `+${v}` : v}点</td>
-                </tr>
+                <Fragment key={c.key}>
+                  <tr>
+                    <td style={{ ...headCellStyle, width: 110 }}>{c.no}. {c.label}</td>
+                    <td style={cellStyle}>{letter}（{SCORE_LABELS[letter]}）</td>
+                    <td style={{ ...cellStyle, width: 60, textAlign: "center", fontWeight: 800 }}>{v > 0 ? `+${v}` : v}点</td>
+                  </tr>
+                  {cNote && (
+                    <tr>
+                      <td style={{ ...cellStyle, background: "#fafafa", color: "#64748b", fontSize: 11 }} colSpan={3}>コメント: {cNote}</td>
+                    </tr>
+                  )}
+                </Fragment>
               );
             })}
             <tr>
@@ -111,6 +130,11 @@ export default function PrintEvaluationPage() {
               <td style={cellStyle}>できて当たり前（減点のみ）</td>
               <td style={{ ...cellStyle, width: 60, textAlign: "center", fontWeight: 800 }}>{evaluation.score_attitude}点</td>
             </tr>
+            {notes.score_attitude && (
+              <tr>
+                <td style={{ ...cellStyle, background: "#fafafa", color: "#64748b", fontSize: 11 }} colSpan={3}>コメント: {notes.score_attitude}</td>
+              </tr>
+            )}
           </tbody>
         </table>
 

@@ -1,4 +1,5 @@
 import type { Member } from "@/lib/task-types";
+import type { JobType } from "@/lib/job-types";
 
 export type WageType = "monthly" | "daily";
 
@@ -12,6 +13,8 @@ export interface EvaluationProfile {
   grade_override: number | null;
   excluded: boolean;
   full_name: string | null;
+  job_type: JobType;
+  job_content_override: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -39,6 +42,7 @@ export interface Evaluation {
   total_score: number;
   note: string | null;
   evaluator: string | null;
+  criteria_notes: Record<string, string>;
   created_at: string;
   updated_at: string;
 }

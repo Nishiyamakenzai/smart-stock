@@ -1,4 +1,5 @@
 import type { EvaluationSettings, ScoredCriterionKey } from "@/lib/evaluation-types";
+import type { JobType } from "@/lib/job-types";
 
 export type ScoreLetter = "S" | "A" | "B" | "C" | "D";
 
@@ -36,20 +37,8 @@ export interface CriterionDef {
   points: string[];
 }
 
-// 【能力評価】1〜3 ＋ 【態度評価】4〜8（人事評価シートより）
-export const CRITERIA: CriterionDef[] = [
-  {
-    key: "score_quality", no: 1, label: "品質", group: "ability",
-    points: ["仕上がりの品質と精度が良いか", "塗りムラや欠陥がないか", "道具や車、倉庫やネタ場などを丁寧に扱い整理整頓ができているか"],
-  },
-  {
-    key: "score_speed", no: 2, label: "スピード", group: "ability",
-    points: ["作業の速さと段取り力", "予定工期内に作業を終えられるか", "ムダのない動きができているか"],
-  },
-  {
-    key: "score_knowledge", no: 3, label: "知識", group: "ability",
-    points: ["道具の使い分けや建物の構造、建材の種類を常に探求しているか", "塗料の種類や性能を自分から覚えようとしているか", "劣化症状、補修方法などを理解し、説明ができるか"],
-  },
+// 態度評価（4〜8）は職種共通
+const ATTITUDE_CRITERIA: CriterionDef[] = [
   {
     key: "score_discipline", no: 4, label: "規律性", group: "attitude",
     points: ["上司や役員の指示・意見を素直に聞き、実行できているか", "遅刻・早退・報連相の遅れや忘れがなく、時間を守れているか", "作業ルールや安全規則を守り、模範的な行動をとれているか"],
@@ -64,13 +53,70 @@ export const CRITERIA: CriterionDef[] = [
   },
   {
     key: "score_initiative", no: 7, label: "積極性", group: "attitude",
-    points: ["注意や指示を素直に聞き、忘れないように工夫改善をし実行しているか", "常に向上心があり、成長する意欲が見られるか", "指導やアドバイスを積極的に行っているか（受けているか）"],
+    points: ["指示がなくても自ら課題を見つけ、行動に移せているか", "常に向上心があり、成長する意欲が見られるか", "指導やアドバイスを積極的に行っているか（受けているか）"],
   },
   {
     key: "score_trust", no: 8, label: "信頼性", group: "attitude",
     points: ["お客様や協力会社に対して礼儀正しい態度で接しているか", "プライドや感情で反発せず、組織としての序列を守れているか", "身だしなみ・言葉遣い・姿勢など、恥ずかしくない行動ができているか"],
   },
 ];
+
+// 職種ごとの能力評価（1〜3）。DBのカラム（score_quality/score_speed/score_knowledge）は
+// 職種を問わず共通で、ラベルと評価内容だけを職種に合わせて切り替える。
+export const CRITERIA_BY_JOB_TYPE: Record<JobType, CriterionDef[]> = {
+  craftsman: [
+    {
+      key: "score_quality", no: 1, label: "品質", group: "ability",
+      points: ["仕上がりの品質と精度が良いか", "塗りムラや欠陥がないか", "道具や車、倉庫やネタ場などを丁寧に扱い整理整頓ができているか"],
+    },
+    {
+      key: "score_speed", no: 2, label: "スピード", group: "ability",
+      points: ["作業の速さと段取り力", "予定工期内に作業を終えられるか", "ムダのない動きができているか"],
+    },
+    {
+      key: "score_knowledge", no: 3, label: "知識", group: "ability",
+      points: ["道具の使い分けや建物の構造、建材の種類を常に探求しているか", "塗料の種類や性能を自分から覚えようとしているか", "劣化症状、補修方法などを理解し、説明ができるか"],
+    },
+    ...ATTITUDE_CRITERIA,
+  ],
+  site_management: [
+    {
+      key: "score_quality", no: 1, label: "現場管理品質", group: "ability",
+      points: ["現場全体の仕上がり・進捗を正しく把握し管理できているか", "手直しやクレームにつながる管理不備がないか", "定期点検を漏れなく実施・報告できているか"],
+    },
+    {
+      key: "score_speed", no: 2, label: "渉外・提案力", group: "ability",
+      points: ["訪問営業や近隣あいさつ回りを、指示を待たず自発的に行えているか", "お客様への提案・説明を分かりやすく行えているか", "トラブル発生時に自分で解決策を考え、提案できているか"],
+    },
+    {
+      key: "score_knowledge", no: 3, label: "知識", group: "ability",
+      points: ["建材・工法・関連法規について理解し、説明できるか", "現場ごとの仕様・注意点を正しく把握しているか", "新しい知識を自分から学ぼうとしているか"],
+    },
+    ...ATTITUDE_CRITERIA,
+  ],
+  office: [
+    {
+      key: "score_quality", no: 1, label: "事務品質", group: "ability",
+      points: ["書類作成・データ入力の正確性", "ミスや漏れが少ないか、確認を怠っていないか", "整理整頓・情報管理が適切にできているか"],
+    },
+    {
+      key: "score_speed", no: 2, label: "対応スピード", group: "ability",
+      points: ["問い合わせや依頼への対応の速さ", "期限を守って業務を処理できているか", "優先順位をつけて効率よく動けているか"],
+    },
+    {
+      key: "score_knowledge", no: 3, label: "知識", group: "ability",
+      points: ["業務システムや社内ルールを理解しているか", "経理・総務等の関連知識を自分から学ぼうとしているか", "分からないことをそのままにせず確認・学習しているか"],
+    },
+    ...ATTITUDE_CRITERIA,
+  ],
+};
+
+// 後方互換用（既存コードは「職人」基準をデフォルトとして参照する）
+export const CRITERIA: CriterionDef[] = CRITERIA_BY_JOB_TYPE.craftsman;
+
+export function getCriteriaForJobType(jobType: JobType | null | undefined): CriterionDef[] {
+  return CRITERIA_BY_JOB_TYPE[jobType ?? "craftsman"] ?? CRITERIA_BY_JOB_TYPE.craftsman;
+}
 
 // 9. 姿勢のルールは「できて当たり前」＝加点なし、0〜-2点の減点のみ
 export const ATTITUDE_RULE_LETTERS: ScoreLetter[] = ["B", "C", "D"];
