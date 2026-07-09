@@ -9,12 +9,13 @@ export interface QuickItem {
   label: string;
 }
 
-// 4段階（能力・態度グループ共通）: 0=できていない 〜 3=いつもできている
+// 5段階（能力・態度グループ共通）: 0=できていない 〜 4=いつもできている
 export const QUICK_SCALE_ABILITY = [
   { value: 0, label: "できていない" },
   { value: 1, label: "あまりできていない" },
-  { value: 2, label: "だいたいできている" },
-  { value: 3, label: "いつもできている" },
+  { value: 2, label: "どちらともいえない" },
+  { value: 3, label: "だいたいできている" },
+  { value: 4, label: "いつもできている" },
 ] as const;
 
 // 3段階（姿勢のルール専用・減点方式）: 0=問題なし 〜 -2=よく問題がある
