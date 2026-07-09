@@ -101,9 +101,11 @@ export default function EmployeeDetailPage() {
 
   const grade = resolveGrade(employee.profile);
   const monthly = monthlyEquivalentYen(employee.profile);
-  const halfYearGroups = buildHalfYearGroups(evals, settings);
-  const evalsAsc = evals.slice().reverse();
-  const latest = evals[0];
+  const finalEvals = evals.filter((e) => !e.is_draft);
+  const draftCount = evals.length - finalEvals.length;
+  const halfYearGroups = buildHalfYearGroups(finalEvals, settings);
+  const evalsAsc = finalEvals.slice().reverse();
+  const latest = finalEvals[0];
   const displayName = employee.profile?.full_name || employee.name;
   const currentJobType = employee.profile?.job_type ?? DEFAULT_JOB_TYPE;
   const jobContentText = employee.profile?.job_content_override || grade?.jobContent || "";
@@ -236,7 +238,7 @@ export default function EmployeeDetailPage() {
       </div>
 
       {/* 成長グラフ */}
-      {evals.length > 0 && (
+      {finalEvals.length > 0 && (
         <div style={{ background: "#fff", borderRadius: 14, border: "1px solid #e2e8f0", padding: 16 }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: "#1e293b", marginBottom: 10 }}>評価点の推移</div>
           <SimpleChart
@@ -267,21 +269,30 @@ export default function EmployeeDetailPage() {
       {/* 評価履歴 */}
       <div>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: "#1e293b" }}>評価履歴</div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "#1e293b" }}>
+            評価履歴{draftCount > 0 && <span style={{ fontWeight: 400, color: "#d97706", fontSize: 11 }}>（下書き {draftCount} 件・昇給判定には含まれません）</span>}
+          </div>
           <button onClick={() => router.push(`/evaluation/${memberId}/new`)} style={{ padding: "7px 14px", borderRadius: 10, border: "none", background: "#2563eb", color: "#fff", fontWeight: 700, fontSize: 12, cursor: "pointer" }}>
             ＋ 新規評価を入力
           </button>
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {evals.map((e) => (
-            <div key={e.id} style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: 12, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div key={e.id} style={{ background: e.is_draft ? "#fffbeb" : "#fff", borderRadius: 12, border: `1px solid ${e.is_draft ? "#fde68a" : "#e2e8f0"}`, padding: 12, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: "#1e293b" }}>{e.period_label}</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#1e293b", display: "flex", alignItems: "center", gap: 6 }}>
+                  {e.period_label}
+                  {e.is_draft && <span style={{ fontSize: 10, fontWeight: 700, color: "#d97706", background: "#fef3c7", borderRadius: 6, padding: "2px 6px" }}>下書き</span>}
+                </div>
                 <div style={{ fontSize: 11, color: "#94a3b8" }}>等級{e.grade_at_evaluation} ・ {e.evaluator ? `評価者: ${e.evaluator}` : ""}</div>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <span style={{ fontSize: 17, fontWeight: 800, color: e.total_score >= settings.perPeriodMin ? "#059669" : "#dc2626" }}>{e.total_score}点</span>
-                <Link href={`/evaluation/${memberId}/print/${e.id}`} style={{ fontSize: 11, color: "#2563eb", fontWeight: 700, textDecoration: "none" }}>🖨 印刷</Link>
+                <span style={{ fontSize: 17, fontWeight: 800, color: e.is_draft ? "#d97706" : e.total_score >= settings.perPeriodMin ? "#059669" : "#dc2626" }}>{e.total_score}点</span>
+                {e.is_draft ? (
+                  <Link href={`/evaluation/${memberId}/new?draftId=${e.id}`} style={{ fontSize: 11, color: "#d97706", fontWeight: 700, textDecoration: "none" }}>✎ 編集を続ける</Link>
+                ) : (
+                  <Link href={`/evaluation/${memberId}/print/${e.id}`} style={{ fontSize: 11, color: "#2563eb", fontWeight: 700, textDecoration: "none" }}>🖨 印刷</Link>
+                )}
                 <button onClick={() => handleDeleteEval(e.id)} style={{ fontSize: 11, color: "#dc2626", background: "none", border: "none", cursor: "pointer" }}>削除</button>
               </div>
             </div>

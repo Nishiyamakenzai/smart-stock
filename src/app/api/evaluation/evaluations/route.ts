@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
   const body = await request.json();
   const {
     member_id, period_label, period_start, period_end, grade_at_evaluation,
-    score_attitude, note, evaluator, criteria_notes,
+    score_attitude, note, evaluator, criteria_notes, is_draft,
   } = body;
 
   if (!member_id || !period_label || !period_start || !period_end || !grade_at_evaluation) {
@@ -49,10 +49,11 @@ export async function POST(request: NextRequest) {
     note: note ?? null,
     evaluator: evaluator ?? null,
     criteria_notes: criteria_notes && typeof criteria_notes === "object" ? criteria_notes : {},
+    is_draft: is_draft === true,
   };
 
   const { data, error, droppedKeys } = await withColumnFallback(
-    ["criteria_notes"],
+    ["criteria_notes", "is_draft"],
     fullPayload,
     async (payload) => {
       const r = await sb.from("evaluations").insert(payload).select().single();
@@ -64,7 +65,7 @@ export async function POST(request: NextRequest) {
   if (droppedKeys.length > 0) {
     return Response.json({
       ...data,
-      warning: `${droppedKeys.join(", ")} はデータベースに未追加のため保存されませんでした。supabase/evaluation_schema_v3.sql を実行してください。`,
+      warning: `${droppedKeys.join(", ")} はデータベースに未追加のため保存されませんでした。supabase/evaluation_schema_v3.sql・v4.sql を実行してください。`,
     }, { status: 201 });
   }
   return Response.json(data, { status: 201 });

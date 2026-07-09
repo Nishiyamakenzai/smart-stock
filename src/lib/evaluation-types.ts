@@ -43,6 +43,7 @@ export interface Evaluation {
   note: string | null;
   evaluator: string | null;
   criteria_notes: Record<string, string>;
+  is_draft: boolean;
   created_at: string;
   updated_at: string;
 }

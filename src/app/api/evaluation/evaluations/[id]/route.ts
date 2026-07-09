@@ -26,7 +26,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   const total_score = computeTotal(scores, merged.score_attitude);
 
   const { data, error, droppedKeys } = await withColumnFallback(
-    ["criteria_notes"],
+    ["criteria_notes", "is_draft"],
     { ...body, total_score },
     async (payload) => {
       const r = await sb.from("evaluations").update(payload).eq("id", id).select().single();
@@ -37,7 +37,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   if (droppedKeys.length > 0) {
     return Response.json({
       ...data,
-      warning: `${droppedKeys.join(", ")} はデータベースに未追加のため保存されませんでした。supabase/evaluation_schema_v3.sql を実行してください。`,
+      warning: `${droppedKeys.join(", ")} はデータベースに未追加のため保存されませんでした。supabase/evaluation_schema_v3.sql・v4.sql を実行してください。`,
     });
   }
   return Response.json(data);
