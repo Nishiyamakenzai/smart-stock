@@ -27,16 +27,30 @@ function QuickItemRow({
   value,
   onChange,
   scale,
+  comment,
+  onCommentChange,
 }: {
   label: string;
   value: number | null;
   onChange: (v: number | null) => void;
   scale: "ability" | "rule";
+  comment: string;
+  onCommentChange: (text: string) => void;
 }) {
   const options = scale === "ability" ? QUICK_SCALE_ABILITY : QUICK_SCALE_RULE;
+  const [showComment, setShowComment] = useState(!!comment);
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 6, padding: "8px 0", borderBottom: "1px solid #f1f5f9" }}>
-      <div style={{ fontSize: 12.5, color: "#334155" }}>{label}</div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+        <div style={{ fontSize: 12.5, color: "#334155" }}>{label}</div>
+        <button
+          type="button"
+          onClick={() => setShowComment((s) => !s)}
+          style={{ flexShrink: 0, fontSize: 10.5, color: comment ? "#2563eb" : "#94a3b8", background: "none", border: "none", cursor: "pointer", fontWeight: 700, whiteSpace: "nowrap" }}
+        >
+          {showComment ? "閉じる" : comment ? "✎ コメントあり" : "＋コメント"}
+        </button>
+      </div>
       <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
         {options.map((opt) => (
           <button
@@ -54,6 +68,14 @@ function QuickItemRow({
           </button>
         ))}
       </div>
+      {showComment && (
+        <input
+          style={{ width: "100%", padding: "7px 9px", borderRadius: 8, border: "1px solid #e2e8f0", fontSize: 12, boxSizing: "border-box" }}
+          value={comment}
+          onChange={(e) => onCommentChange(e.target.value)}
+          placeholder="この質問について気づいた点があれば（任意）"
+        />
+      )}
     </div>
   );
 }
@@ -72,7 +94,7 @@ export default function QuickEvaluatePage() {
   const [evaluator, setEvaluator] = useState("");
   const [freeText, setFreeText] = useState("");
   const [answers, setAnswers] = useState<Record<string, number | null>>({});
-  const [categoryComments, setCategoryComments] = useState<Record<string, string>>({});
+  const [itemComments, setItemComments] = useState<Record<string, string>>({});
 
   useEffect(() => {
     fetch("/api/evaluation/profiles").then((r) => r.json()).then((list: EmployeeWithProfile[]) => {
@@ -108,7 +130,7 @@ export default function QuickEvaluatePage() {
           period_end: periodEnd,
           evaluator: evaluator || null,
           answers,
-          category_comments: categoryComments,
+          item_comments: itemComments,
           free_text: freeText,
         }),
       });
@@ -169,17 +191,10 @@ export default function QuickEvaluatePage() {
               value={answers[item.id] ?? null}
               onChange={(v) => setAnswer(item.id, v)}
               scale={g.scale}
+              comment={itemComments[item.id] ?? ""}
+              onCommentChange={(text) => setItemComments((c) => ({ ...c, [item.id]: text }))}
             />
           ))}
-          <div style={{ marginTop: 10 }}>
-            <label style={{ fontSize: 11, color: "#64748b" }}>このカテゴリについてのメモ（任意・気づいた良い点や悪い点など）</label>
-            <textarea
-              style={{ ...inputStyle, minHeight: 50, resize: "vertical", marginTop: 4 }}
-              value={categoryComments[g.category] ?? ""}
-              onChange={(e) => setCategoryComments((c) => ({ ...c, [g.category]: e.target.value }))}
-              placeholder="例: 訪販は指示しないとやらない／後輩への指導は丁寧、など"
-            />
-          </div>
         </div>
       ))}
 

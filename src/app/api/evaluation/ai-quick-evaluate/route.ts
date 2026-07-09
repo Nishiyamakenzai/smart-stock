@@ -36,7 +36,7 @@ function clampInt(v: unknown, min: number, max: number, fallback = 0): number {
 
 export async function POST(request: NextRequest) {
   const body = await request.json();
-  const { member_id, period_label, period_start, period_end, evaluator, answers, category_comments, free_text } = body;
+  const { member_id, period_label, period_start, period_end, evaluator, answers, item_comments, free_text } = body;
 
   if (!member_id || !period_label || !period_start || !period_end) {
     return Response.json({ error: "member_id, period_label, period_start, period_end are required" }, { status: 400 });
@@ -72,24 +72,24 @@ export async function POST(request: NextRequest) {
   const criteria = getCriteriaForJobType(jobType);
   const labelOf = (cat: string) => (cat === "score_attitude" ? "姿勢のルール（できて当たり前・減点方式）" : criteria.find((c) => c.key === cat)?.label ?? cat);
 
+  const itemCommentsObj = (item_comments && typeof item_comments === "object" ? item_comments : {}) as Record<string, unknown>;
+  const answersObj = answers as Record<string, unknown>;
+
   const byCategory = new Map<string, string[]>();
   for (const item of items) {
-    const v = (answers as Record<string, unknown>)[item.id];
-    if (v === null || v === undefined || v === "") continue; // わからない/該当なし はスキップ
+    const v = answersObj[item.id];
+    const rawComment = itemCommentsObj[item.id];
+    const comment = typeof rawComment === "string" && rawComment.trim() ? rawComment.trim() : "";
+    const hasAnswer = !(v === null || v === undefined || v === "");
+    if (!hasAnswer && !comment) continue; // 回答もメモもない質問はスキップ
     const list = byCategory.get(item.category) ?? [];
-    list.push(`- ${item.label} → 回答値: ${v}`);
+    const answerText = hasAnswer ? `回答値: ${v}` : "回答: 未回答";
+    list.push(`- ${item.label} → ${answerText}${comment ? ` ｜ 評価者のメモ: ${comment}` : ""}`);
     byCategory.set(item.category, list);
   }
-  const categoryCommentsObj = (category_comments && typeof category_comments === "object" ? category_comments : {}) as Record<string, unknown>;
-  const allCategories = new Set<string>([...byCategory.keys(), ...Object.keys(categoryCommentsObj)]);
 
-  const qaText = Array.from(allCategories)
-    .map((cat) => {
-      const lines = byCategory.get(cat) ?? [];
-      const memo = categoryCommentsObj[cat];
-      const memoLine = typeof memo === "string" && memo.trim() ? `【評価者のメモ】${memo.trim()}` : "";
-      return [`【${labelOf(cat)}】`, ...lines, memoLine].filter(Boolean).join("\n");
-    })
+  const qaText = Array.from(byCategory.entries())
+    .map(([cat, lines]) => `【${labelOf(cat)}】\n${lines.join("\n")}`)
     .join("\n\n");
 
   const system =
@@ -100,8 +100,8 @@ export async function POST(request: NextRequest) {
     "・score_attitude は -2〜0 の整数（減点のみ、加点なし）\n" +
     "・各カテゴリの複数の質問への回答を総合的に判断してスコアを決めてください（単純平均ではなく、重大な問題があれば重く見るなど、人事評価者としての総合判断をしてください）。\n" +
     "・従業員の等級・経験年数・役職・業務内容に応じて期待水準を調整してください（新人に対してベテランと同じ完成度を求めすぎない一方、経験や等級が上がるほど求める水準も上げる、といった形で、立場に応じた公平な評価にしてください）。\n" +
-    "・各カテゴリに評価者が書いた「評価者のメモ」がある場合は、選択式の回答と同じかそれ以上に重要な材料として扱い、そのカテゴリのスコアとコメントに反映してください。\n" +
-    "・全体の総評コメント（note）は、9項目それぞれの内容の要約ではなく、すべてのカテゴリの評価者メモや補足メモを俯瞰したうえで、特に伝えるべき良い点・課題点をまとめた文章にしてください。\n" +
+    "・各質問に「評価者のメモ」が付いている場合は、その質問の選択式の回答と同じかそれ以上に重要な材料として扱い、該当するカテゴリのスコアとコメントに反映してください。未回答でもメモだけ書かれている質問も同様に考慮してください。\n" +
+    "・全体の総評コメント（note）は、9項目それぞれの内容の要約ではなく、すべての質問の評価者メモや補足メモを俯瞰したうえで、特に伝えるべき良い点・課題点をまとめた文章にしてください。\n" +
     "・コメントは客観的で業務上の事実に基づいたプロフェッショナルな文章にし、個人攻撃的・感情的な表現は避けてください。\n" +
     "・出力は次のJSON形式のみとし、説明文やマークダウンのコードブロックは付けないでください:\n" +
     '{"score_quality":0,"score_speed":0,"score_knowledge":0,"score_discipline":0,"score_cooperation":0,"score_responsibility":0,"score_initiative":0,"score_trust":0,"score_attitude":0,' +
