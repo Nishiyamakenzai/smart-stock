@@ -303,11 +303,10 @@ export default function EmployeeDetailPage() {
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 <span style={{ fontSize: 17, fontWeight: 800, color: e.is_draft ? "#d97706" : e.total_score >= settings.perPeriodMin ? "#059669" : "#dc2626" }}>{e.total_score}点</span>
-                {e.is_draft ? (
+                {e.is_draft && (
                   <Link href={`/evaluation/${memberId}/new?draftId=${e.id}`} style={{ fontSize: 11, color: "#d97706", fontWeight: 700, textDecoration: "none" }}>✎ 編集を続ける</Link>
-                ) : (
-                  <Link href={`/evaluation/${memberId}/print/${e.id}`} style={{ fontSize: 11, color: "#2563eb", fontWeight: 700, textDecoration: "none" }}>🖨 印刷</Link>
                 )}
+                <Link href={`/evaluation/${memberId}/print/${e.id}`} style={{ fontSize: 11, color: "#2563eb", fontWeight: 700, textDecoration: "none" }}>🖨 印刷{e.is_draft ? "プレビュー" : ""}</Link>
                 <button onClick={() => handleDeleteEval(e.id)} style={{ fontSize: 11, color: "#dc2626", background: "none", border: "none", cursor: "pointer" }}>削除</button>
               </div>
             </div>

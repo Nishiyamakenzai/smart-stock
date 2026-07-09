@@ -47,7 +47,21 @@ export default function PrintEvaluationPage() {
         </button>
       </div>
 
-      <div className="print-sheet" style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 12, padding: 28 }}>
+      {evaluation.is_draft && (
+        <div className="no-print" style={{ background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 10, padding: "8px 12px", marginBottom: 12, fontSize: 12, color: "#92400e", fontWeight: 700 }}>
+          この評価はまだ下書きです。内容は確定前のため変更される可能性があります。
+        </div>
+      )}
+
+      <div className="print-sheet" style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 12, padding: 28, position: "relative" }}>
+        {evaluation.is_draft && (
+          <div style={{
+            position: "absolute", top: 18, right: 18, fontSize: 12, fontWeight: 900, color: "#d97706",
+            border: "2px solid #d97706", borderRadius: 8, padding: "3px 10px", transform: "rotate(6deg)", letterSpacing: 2,
+          }}>
+            下書き
+          </div>
+        )}
         <div style={{ textAlign: "center", marginBottom: 20 }}>
           <div style={{ fontSize: 20, fontWeight: 900, color: "#0f172a" }}>人事評価シート</div>
           <div style={{ fontSize: 12, color: "#64748b", marginTop: 4 }}>{evaluation.period_label}</div>
