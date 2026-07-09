@@ -1,0 +1,197 @@
+"use client";
+import { useEffect, useState, useMemo } from "react";
+import { useParams, useRouter } from "next/navigation";
+import type { EmployeeWithProfile } from "@/lib/evaluation-types";
+import { resolveGrade } from "@/lib/evaluation-data";
+import { getCriteriaForJobType } from "@/lib/evaluation-constants";
+import { getQuickItemGroupsForJobType, QUICK_SCALE_ABILITY, QUICK_SCALE_RULE, type QuickItemCategory } from "@/lib/quick-items";
+import { DEFAULT_JOB_TYPE } from "@/lib/job-types";
+
+const inputStyle: React.CSSProperties = {
+  width: "100%", padding: "9px 11px", borderRadius: 10, border: "1px solid #e2e8f0",
+  fontSize: 13, boxSizing: "border-box",
+};
+
+function defaultQuarter(): { label: string; start: string; end: string } {
+  const now = new Date();
+  const qStartMonth = Math.floor(now.getMonth() / 3) * 3;
+  const start = new Date(now.getFullYear(), qStartMonth, 1);
+  const end = new Date(now.getFullYear(), qStartMonth + 3, 0);
+  const label = `${start.getFullYear()}年 ${start.getMonth() + 1}〜${end.getMonth() + 1}月期`;
+  const toISO = (d: Date) => d.toISOString().slice(0, 10);
+  return { label, start: toISO(start), end: toISO(end) };
+}
+
+function QuickItemRow({
+  label,
+  value,
+  onChange,
+  scale,
+}: {
+  label: string;
+  value: number | null;
+  onChange: (v: number | null) => void;
+  scale: "ability" | "rule";
+}) {
+  const options = scale === "ability" ? QUICK_SCALE_ABILITY : QUICK_SCALE_RULE;
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 6, padding: "8px 0", borderBottom: "1px solid #f1f5f9" }}>
+      <div style={{ fontSize: 12.5, color: "#334155" }}>{label}</div>
+      <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
+        {options.map((opt) => (
+          <button
+            key={opt.value}
+            type="button"
+            onClick={() => onChange(value === opt.value ? null : opt.value)}
+            style={{
+              padding: "5px 9px", borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: "pointer",
+              border: `1.5px solid ${value === opt.value ? "#2563eb" : "#e2e8f0"}`,
+              background: value === opt.value ? "#2563eb" : "#fff",
+              color: value === opt.value ? "#fff" : "#64748b",
+            }}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export default function QuickEvaluatePage() {
+  const { memberId } = useParams<{ memberId: string }>();
+  const router = useRouter();
+  const [employee, setEmployee] = useState<EmployeeWithProfile | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+
+  const q = useMemo(defaultQuarter, []);
+  const [periodLabel, setPeriodLabel] = useState(q.label);
+  const [periodStart, setPeriodStart] = useState(q.start);
+  const [periodEnd, setPeriodEnd] = useState(q.end);
+  const [evaluator, setEvaluator] = useState("");
+  const [freeText, setFreeText] = useState("");
+  const [answers, setAnswers] = useState<Record<string, number | null>>({});
+
+  useEffect(() => {
+    fetch("/api/evaluation/profiles").then((r) => r.json()).then((list: EmployeeWithProfile[]) => {
+      setEmployee(list.find((e) => e.id === memberId) ?? null);
+      setLoading(false);
+    });
+  }, [memberId]);
+
+  if (loading) return <div style={{ padding: 20, color: "#94a3b8", fontSize: 13 }}>読み込み中...</div>;
+  if (!employee) return <div style={{ padding: 20, color: "#94a3b8", fontSize: 13 }}>メンバーが見つかりません</div>;
+
+  const jobType = employee.profile?.job_type ?? DEFAULT_JOB_TYPE;
+  const grade = resolveGrade(employee.profile);
+  const criteria = getCriteriaForJobType(jobType);
+  const groups = getQuickItemGroupsForJobType(jobType);
+  const labelOf = (cat: QuickItemCategory) => (cat === "score_attitude" ? "姿勢のルール（できて当たり前・減点方式）" : criteria.find((c) => c.key === cat)?.label ?? cat);
+
+  const answeredCount = Object.values(answers).filter((v) => v !== null && v !== undefined).length;
+  const totalCount = groups.reduce((s, g) => s + g.items.length, 0);
+
+  const setAnswer = (id: string, v: number | null) => setAnswers((a) => ({ ...a, [id]: v }));
+
+  const handleSubmit = async () => {
+    setSubmitting(true);
+    try {
+      const res = await fetch("/api/evaluation/ai-quick-evaluate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          member_id: memberId,
+          period_label: periodLabel,
+          period_start: periodStart,
+          period_end: periodEnd,
+          evaluator: evaluator || null,
+          answers,
+          free_text: freeText,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert("評価の作成に失敗しました: " + (data.error ?? "unknown error"));
+        return;
+      }
+      if (data.warning) alert(data.warning);
+      router.push(`/evaluation/${memberId}/new?draftId=${data.id}`);
+    } catch {
+      alert("通信エラーが発生しました");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+      <div>
+        <h1 style={{ fontSize: 18, fontWeight: 800, color: "#1e293b", margin: 0 }}>{employee.name} さんのかんたん評価アンケート</h1>
+        <p style={{ fontSize: 12, color: "#64748b", margin: "6px 0 0" }}>
+          約{totalCount}個の質問にボタンをタップして答えるだけで、AIが評価スコアとコメントの下書きを作成します。わからない項目は空欄のままでOKです。最後に内容を確認・修正してから保存できます。
+        </p>
+      </div>
+
+      <div style={{ background: "#fff", borderRadius: 14, border: "1px solid #e2e8f0", padding: 16, display: "flex", flexDirection: "column", gap: 10 }}>
+        <div style={{ fontSize: 12, color: "#64748b" }}>
+          等級: <b style={{ color: "#1e293b" }}>{grade ? `等級${grade.grade}・${grade.name}` : "未設定"}</b>
+        </div>
+        <div>
+          <label style={{ fontSize: 11, color: "#64748b" }}>評価期間ラベル</label>
+          <input style={inputStyle} value={periodLabel} onChange={(e) => setPeriodLabel(e.target.value)} />
+        </div>
+        <div style={{ display: "flex", gap: 8 }}>
+          <div style={{ flex: 1 }}>
+            <label style={{ fontSize: 11, color: "#64748b" }}>開始日</label>
+            <input style={inputStyle} type="date" value={periodStart} onChange={(e) => setPeriodStart(e.target.value)} />
+          </div>
+          <div style={{ flex: 1 }}>
+            <label style={{ fontSize: 11, color: "#64748b" }}>終了日</label>
+            <input style={inputStyle} type="date" value={periodEnd} onChange={(e) => setPeriodEnd(e.target.value)} />
+          </div>
+        </div>
+        <div>
+          <label style={{ fontSize: 11, color: "#64748b" }}>評価者</label>
+          <input style={inputStyle} value={evaluator} onChange={(e) => setEvaluator(e.target.value)} placeholder="評価者名" />
+        </div>
+      </div>
+
+      {groups.map((g) => (
+        <div key={g.category} style={{ background: "#fff", borderRadius: 14, border: "1px solid #e2e8f0", padding: 16 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "#1e293b", marginBottom: 6 }}>{labelOf(g.category)}</div>
+          {g.items.map((item) => (
+            <QuickItemRow
+              key={item.id}
+              label={item.label}
+              value={answers[item.id] ?? null}
+              onChange={(v) => setAnswer(item.id, v)}
+              scale={g.scale}
+            />
+          ))}
+        </div>
+      ))}
+
+      <div>
+        <label style={{ fontSize: 11, color: "#64748b" }}>その他伝えたいことがあれば（任意・箇条書きでOK）</label>
+        <textarea
+          style={{ ...inputStyle, minHeight: 80, resize: "vertical" }}
+          value={freeText}
+          onChange={(e) => setFreeText(e.target.value)}
+          placeholder="例: 訪販は言わないとやらない、少しできると聞かなくなる、など気になっていることを簡単なメモでOK"
+        />
+      </div>
+
+      <div style={{ position: "sticky", bottom: 12, background: "#1e3a5f", borderRadius: 14, padding: 14, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, boxShadow: "0 4px 16px rgba(0,0,0,0.15)" }}>
+        <span style={{ color: "#cbd5e1", fontSize: 12 }}>{answeredCount} / {totalCount} 項目に回答済み</span>
+        <button
+          onClick={handleSubmit}
+          disabled={submitting}
+          style={{ padding: "12px 18px", borderRadius: 12, border: "none", background: "#2563eb", color: "#fff", fontWeight: 800, fontSize: 14, cursor: "pointer", opacity: submitting ? 0.6 : 1, whiteSpace: "nowrap" }}
+        >
+          {submitting ? "AIが作成中..." : "🤖 AIに評価を作ってもらう"}
+        </button>
+      </div>
+    </div>
+  );
+}

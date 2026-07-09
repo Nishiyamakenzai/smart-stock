@@ -249,11 +249,21 @@ export default function EmployeeDetailPage() {
         </div>
       )}
 
-      {/* 直近評価のレーダーチャート */}
+      {/* 直近評価のレーダーチャート（前回との比較で成長が分かるように） */}
       {latest && (
         <div style={{ background: "#fff", borderRadius: 14, border: "1px solid #e2e8f0", padding: 16 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: "#1e293b", marginBottom: 10 }}>直近評価（{latest.period_label}）の項目別スコア</div>
-          <RadarChart points={criteria.map((c) => ({ label: c.label, value: latest[c.key] }))} />
+          <div style={{ fontSize: 13, fontWeight: 700, color: "#1e293b", marginBottom: 10 }}>
+            直近評価（{latest.period_label}）の項目別スコア{finalEvals[1] ? `（前回 ${finalEvals[1].period_label} と比較）` : ""}
+          </div>
+          <RadarChart
+            points={criteria.map((c) => ({ label: c.label, value: latest[c.key] }))}
+            label={latest.period_label}
+            compareSeries={finalEvals[1] ? {
+              label: finalEvals[1].period_label,
+              color: "#94a3b8",
+              values: criteria.map((c) => finalEvals[1][c.key]),
+            } : undefined}
+          />
         </div>
       )}
 
@@ -272,9 +282,14 @@ export default function EmployeeDetailPage() {
           <div style={{ fontSize: 13, fontWeight: 700, color: "#1e293b" }}>
             評価履歴{draftCount > 0 && <span style={{ fontWeight: 400, color: "#d97706", fontSize: 11 }}>（下書き {draftCount} 件・昇給判定には含まれません）</span>}
           </div>
-          <button onClick={() => router.push(`/evaluation/${memberId}/new`)} style={{ padding: "7px 14px", borderRadius: 10, border: "none", background: "#2563eb", color: "#fff", fontWeight: 700, fontSize: 12, cursor: "pointer" }}>
-            ＋ 新規評価を入力
-          </button>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button onClick={() => router.push(`/evaluation/${memberId}/quick`)} style={{ padding: "7px 14px", borderRadius: 10, border: "1px solid #c7d2fe", background: "#eef2ff", color: "#4338ca", fontWeight: 700, fontSize: 12, cursor: "pointer" }}>
+              🤖 AIでかんたん評価を作成
+            </button>
+            <button onClick={() => router.push(`/evaluation/${memberId}/new`)} style={{ padding: "7px 14px", borderRadius: 10, border: "none", background: "#2563eb", color: "#fff", fontWeight: 700, fontSize: 12, cursor: "pointer" }}>
+              ＋ 新規評価を入力
+            </button>
+          </div>
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {evals.map((e) => (
