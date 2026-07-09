@@ -6,6 +6,7 @@ import { resolveGrade } from "@/lib/evaluation-data";
 import { getCriteriaForJobType } from "@/lib/evaluation-constants";
 import { getQuickItemGroupsForJobType, QUICK_SCALE_ABILITY, QUICK_SCALE_RULE, type QuickItemCategory } from "@/lib/quick-items";
 import { DEFAULT_JOB_TYPE } from "@/lib/job-types";
+import type { QuickDraft } from "@/app/api/evaluation/quick-draft/[memberId]/route";
 
 const inputStyle: React.CSSProperties = {
   width: "100%", padding: "9px 11px", borderRadius: 10, border: "1px solid #e2e8f0",
@@ -86,6 +87,8 @@ export default function QuickEvaluatePage() {
   const [employee, setEmployee] = useState<EmployeeWithProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [savingDraft, setSavingDraft] = useState(false);
+  const [draftLoadedAt, setDraftLoadedAt] = useState<string | null>(null);
 
   const q = useMemo(defaultQuarter, []);
   const [periodLabel, setPeriodLabel] = useState(q.label);
@@ -101,7 +104,57 @@ export default function QuickEvaluatePage() {
       setEmployee(list.find((e) => e.id === memberId) ?? null);
       setLoading(false);
     });
+    fetch(`/api/evaluation/quick-draft/${memberId}`).then((r) => r.json()).then((draft: QuickDraft | null) => {
+      if (!draft) return;
+      if (draft.period_label) setPeriodLabel(draft.period_label);
+      if (draft.period_start) setPeriodStart(draft.period_start);
+      if (draft.period_end) setPeriodEnd(draft.period_end);
+      setEvaluator(draft.evaluator ?? "");
+      setFreeText(draft.free_text ?? "");
+      setAnswers(draft.answers ?? {});
+      setItemComments(draft.item_comments ?? {});
+      setDraftLoadedAt(draft.updated_at ?? null);
+    });
   }, [memberId]);
+
+  const handleSaveDraft = async () => {
+    setSavingDraft(true);
+    try {
+      const res = await fetch(`/api/evaluation/quick-draft/${memberId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          period_label: periodLabel,
+          period_start: periodStart,
+          period_end: periodEnd,
+          evaluator,
+          answers,
+          item_comments: itemComments,
+          free_text: freeText,
+        }),
+      });
+      if (!res.ok) {
+        alert("下書きの保存に失敗しました");
+        return;
+      }
+      setDraftLoadedAt(new Date().toISOString());
+      alert("回答内容を下書き保存しました。続きは後でこの画面を開くと復元されます。");
+    } catch {
+      alert("通信エラーが発生しました");
+    } finally {
+      setSavingDraft(false);
+    }
+  };
+
+  const handleDiscardDraft = async () => {
+    if (!confirm("保存済みの下書きを削除して最初からやり直しますか？")) return;
+    await fetch(`/api/evaluation/quick-draft/${memberId}`, { method: "DELETE" });
+    setAnswers({});
+    setItemComments({});
+    setFreeText("");
+    setEvaluator("");
+    setDraftLoadedAt(null);
+  };
 
   if (loading) return <div style={{ padding: 20, color: "#94a3b8", fontSize: 13 }}>読み込み中...</div>;
   if (!employee) return <div style={{ padding: 20, color: "#94a3b8", fontSize: 13 }}>メンバーが見つかりません</div>;
@@ -140,6 +193,7 @@ export default function QuickEvaluatePage() {
         return;
       }
       if (data.warning) alert(data.warning);
+      await fetch(`/api/evaluation/quick-draft/${memberId}`, { method: "DELETE" });
       router.push(`/evaluation/${memberId}/new?draftId=${data.id}`);
     } catch {
       alert("通信エラーが発生しました");
@@ -155,6 +209,14 @@ export default function QuickEvaluatePage() {
         <p style={{ fontSize: 12, color: "#64748b", margin: "6px 0 0" }}>
           約{totalCount}個の質問にボタンをタップして答えるだけで、AIが評価スコアとコメントの下書きを作成します。わからない項目は空欄のままでOKです。最後に内容を確認・修正してから保存できます。
         </p>
+        {draftLoadedAt && (
+          <div style={{ marginTop: 8, background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 10, padding: "8px 12px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            <span style={{ fontSize: 11.5, color: "#92400e" }}>回答の下書きを読み込みました（保存日時: {new Date(draftLoadedAt).toLocaleString("ja-JP")}）</span>
+            <button type="button" onClick={handleDiscardDraft} style={{ fontSize: 11, color: "#dc2626", background: "none", border: "none", cursor: "pointer", fontWeight: 700, whiteSpace: "nowrap" }}>
+              下書きを削除して最初から
+            </button>
+          </div>
+        )}
       </div>
 
       <div style={{ background: "#fff", borderRadius: 14, border: "1px solid #e2e8f0", padding: 16, display: "flex", flexDirection: "column", gap: 10 }}>
@@ -208,15 +270,24 @@ export default function QuickEvaluatePage() {
         />
       </div>
 
-      <div style={{ position: "sticky", bottom: 12, background: "#1e3a5f", borderRadius: 14, padding: 14, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, boxShadow: "0 4px 16px rgba(0,0,0,0.15)" }}>
+      <div style={{ position: "sticky", bottom: 12, background: "#1e3a5f", borderRadius: 14, padding: 14, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap", boxShadow: "0 4px 16px rgba(0,0,0,0.15)" }}>
         <span style={{ color: "#cbd5e1", fontSize: 12 }}>{answeredCount} / {totalCount} 項目に回答済み</span>
-        <button
-          onClick={handleSubmit}
-          disabled={submitting}
-          style={{ padding: "12px 18px", borderRadius: 12, border: "none", background: "#2563eb", color: "#fff", fontWeight: 800, fontSize: 14, cursor: "pointer", opacity: submitting ? 0.6 : 1, whiteSpace: "nowrap" }}
-        >
-          {submitting ? "AIが作成中..." : "🤖 AIに評価を作ってもらう"}
-        </button>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button
+            onClick={handleSaveDraft}
+            disabled={submitting || savingDraft}
+            style={{ padding: "12px 16px", borderRadius: 12, border: "1px solid #475569", background: "transparent", color: "#e2e8f0", fontWeight: 700, fontSize: 13, cursor: "pointer", opacity: savingDraft ? 0.6 : 1, whiteSpace: "nowrap" }}
+          >
+            {savingDraft ? "保存中..." : "回答を下書き保存"}
+          </button>
+          <button
+            onClick={handleSubmit}
+            disabled={submitting || savingDraft}
+            style={{ padding: "12px 18px", borderRadius: 12, border: "none", background: "#2563eb", color: "#fff", fontWeight: 800, fontSize: 14, cursor: "pointer", opacity: submitting ? 0.6 : 1, whiteSpace: "nowrap" }}
+          >
+            {submitting ? "AIが作成中..." : "🤖 AIに評価を作ってもらう"}
+          </button>
+        </div>
       </div>
     </div>
   );
