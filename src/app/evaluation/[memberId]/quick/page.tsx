@@ -72,6 +72,7 @@ export default function QuickEvaluatePage() {
   const [evaluator, setEvaluator] = useState("");
   const [freeText, setFreeText] = useState("");
   const [answers, setAnswers] = useState<Record<string, number | null>>({});
+  const [categoryComments, setCategoryComments] = useState<Record<string, string>>({});
 
   useEffect(() => {
     fetch("/api/evaluation/profiles").then((r) => r.json()).then((list: EmployeeWithProfile[]) => {
@@ -107,6 +108,7 @@ export default function QuickEvaluatePage() {
           period_end: periodEnd,
           evaluator: evaluator || null,
           answers,
+          category_comments: categoryComments,
           free_text: freeText,
         }),
       });
@@ -169,6 +171,15 @@ export default function QuickEvaluatePage() {
               scale={g.scale}
             />
           ))}
+          <div style={{ marginTop: 10 }}>
+            <label style={{ fontSize: 11, color: "#64748b" }}>このカテゴリについてのメモ（任意・気づいた良い点や悪い点など）</label>
+            <textarea
+              style={{ ...inputStyle, minHeight: 50, resize: "vertical", marginTop: 4 }}
+              value={categoryComments[g.category] ?? ""}
+              onChange={(e) => setCategoryComments((c) => ({ ...c, [g.category]: e.target.value }))}
+              placeholder="例: 訪販は指示しないとやらない／後輩への指導は丁寧、など"
+            />
+          </div>
         </div>
       ))}
 
