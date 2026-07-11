@@ -91,6 +91,7 @@ export default function NewEvaluationPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savingDraft, setSavingDraft] = useState(false);
+  const [loadedIsDraft, setLoadedIsDraft] = useState<boolean | null>(null);
 
   const q = useMemo(defaultQuarter, []);
   const [periodLabel, setPeriodLabel] = useState(q.label);
@@ -125,6 +126,7 @@ export default function NewEvaluationPage() {
       setScores(
         Object.fromEntries(CRITERIA.map((c) => [c.key, ev[c.key] ?? 0])) as Record<ScoredCriterionKey, number>
       );
+      setLoadedIsDraft(ev.is_draft ?? false);
     });
   }, [draftId]);
 
@@ -179,8 +181,13 @@ export default function NewEvaluationPage() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
       <h1 style={{ fontSize: 18, fontWeight: 800, color: "#1e293b", margin: 0 }}>
-        {employee.name} さんの{draftId ? "評価（下書き編集）" : "新規評価"}
+        {employee.name} さんの{!draftId ? "新規評価" : loadedIsDraft ? "評価（下書き編集）" : "評価の再編集"}
       </h1>
+      {draftId && loadedIsDraft === false && (
+        <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 10, padding: "8px 12px", fontSize: 12, color: "#1d4ed8" }}>
+          この評価はすでに確定・印刷可能な状態です。変更して保存すると内容が上書きされます。
+        </div>
+      )}
 
       <div style={{ background: "#fff", borderRadius: 14, border: "1px solid #e2e8f0", padding: 16, display: "flex", flexDirection: "column", gap: 10 }}>
         <div>
