@@ -13,9 +13,10 @@ import FixedModal from "./modals/FixedModal";
 import TargetModal from "./modals/TargetModal";
 import BSModal from "./modals/BSModal";
 import PrevModal from "./modals/PrevModal";
+import BackupModal from "./modals/BackupModal";
 import { DEMO_PROJECTS, DEMO_MF, DEFAULT_AB, DEFAULT_TARGETS, DEFAULT_BS, DEFAULT_SHARE_RATE, DEFAULT_PROMO_PLAN, PREV, PREV2, migrateMF, migrateAB, defaultF3, defaultFixedCosts } from "@/lib/data";
 import { computeData, aiOverall } from "@/lib/utils";
-import type { Project, MonthlyFixed, AnnualBudget, Targets, BSData, ShareRateState, PrevPeriod, PromoPlanData } from "@/lib/types";
+import type { Project, MonthlyFixed, AnnualBudget, Targets, BSData, ShareRateState, PrevPeriod, PromoPlanData, BackupSnapshot } from "@/lib/types";
 
 type Tab = "dash" | "proj" | "month" | "analysis" | "bs" | "share" | "promo";
 const TABS: [Tab, string][] = [["dash","総合"], ["proj","案件"], ["month","月次"], ["analysis","分析"], ["bs","B/S"], ["share","シェア率"], ["promo","販促計画"]];
@@ -36,6 +37,23 @@ export default function MQDashboard({ onLogout }: { onLogout: () => void }) {
   // saveEnabled は DB からの正常ロード後のみ true にする（エラー時に初期デモデータを上書き保存しないための安全弁）
   const [saveEnabled, setSaveEnabled] = useState(false);
 
+  // 保存状態
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const pendingSaveCount = useRef(0);
+  const saveErrorKeys = useRef(new Set<string>());
+  const pendingData = useRef<Record<string, unknown>>({});
+  const saveTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+
+  // 常に最新の全データを参照できる ref（beforeunload・スナップショット用）
+  const currentDataRef = useRef<BackupSnapshot["data"]>({ projects, mf, ab, targets, bs, prev, prev2, promoPlan });
+  const isMountedRef = useRef(true);
+
+  useEffect(() => () => { isMountedRef.current = false; }, []);
+
+  useEffect(() => {
+    currentDataRef.current = { projects, mf, ab, targets, bs, prev, prev2, promoPlan };
+  }, [projects, mf, ab, targets, bs, prev, prev2, promoPlan]);
+
   // UI状態
   const [tab, setTab] = useState<Tab>("dash");
   const [showPM, setShowPM] = useState(false);
@@ -44,6 +62,7 @@ export default function MQDashboard({ onLogout }: { onLogout: () => void }) {
   const [showTM, setShowTM] = useState(false);
   const [showBM, setShowBM] = useState(false);
   const [showPrevM, setShowPrevM] = useState(false);
+  const [showBackupM, setShowBackupM] = useState(false);
   const [filterMonth, setFilterMonth] = useState<number | null>(null);
 
   // ── データ読み込み（マウント時に1回だけ） ──────────────────
@@ -65,7 +84,6 @@ export default function MQDashboard({ onLogout }: { onLogout: () => void }) {
         if (d["mq-prev"])     setPrev(d["mq-prev"]);
         if (d["mq-prev2"])    setPrev2(d["mq-prev2"]);
         if (d["mq-promo"])    setPromoPlan(d["mq-promo"]);
-        // DB から正常に取得できた場合のみ保存を有効化
         setSaveEnabled(true);
       })
       .catch((e) => {
@@ -77,21 +95,73 @@ export default function MQDashboard({ onLogout }: { onLogout: () => void }) {
 
   useEffect(() => { loadData(); }, [loadData]);
 
-  // ── デバウンス自動保存（変更から1.5秒後にAPI保存） ────────
-  const saveTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
-
+  // ── デバウンス自動保存（500ms）＋リトライ（2s/4s/8s）──────────
   const debouncedSave = useCallback((key: string, value: unknown) => {
+    pendingData.current[key] = value;
+    // localStorage へ即時ミラー（DB 保存失敗時のフォールバック）
+    try { localStorage.setItem(`mq-ls-${key}`, JSON.stringify(value)); } catch {}
+
     clearTimeout(saveTimers.current[key]);
-    saveTimers.current[key] = setTimeout(() => {
-      fetch("/api/data", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ key, value }),
-      }).catch(console.error);
-    }, 1500);
+    saveTimers.current[key] = setTimeout(async () => {
+      const val = pendingData.current[key];
+      pendingSaveCount.current++;
+      if (isMountedRef.current) setSaveStatus("saving");
+
+      const retryDelays = [2000, 4000, 8000];
+      let success = false;
+      for (let attempt = 0; attempt <= retryDelays.length; attempt++) {
+        if (attempt > 0) await new Promise(res => setTimeout(res, retryDelays[attempt - 1]));
+        try {
+          const r = await fetch("/api/data", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ key, value: val }),
+          });
+          if (!r.ok) throw new Error(`HTTP ${r.status}`);
+          success = true;
+          break;
+        } catch {
+          if (attempt >= retryDelays.length) break;
+        }
+      }
+
+      if (success) {
+        delete pendingData.current[key];
+        saveErrorKeys.current.delete(key);
+      } else {
+        saveErrorKeys.current.add(key);
+        console.error(`保存失敗: ${key}`);
+      }
+
+      pendingSaveCount.current--;
+      if (isMountedRef.current && pendingSaveCount.current === 0) {
+        if (saveErrorKeys.current.size > 0) {
+          setSaveStatus("error");
+        } else {
+          setSaveStatus("saved");
+          setTimeout(() => {
+            if (isMountedRef.current) setSaveStatus(s => s === "saved" ? "idle" : s);
+          }, 3000);
+        }
+      }
+    }, 500);
   }, []);
 
-  // DB から正常ロードできた場合のみ保存を有効化（saveEnabled が false の間は絶対に保存しない）
+  // ── ブラウザ閉じる直前に未保存データを sendBeacon で即時送信 ──
+  useEffect(() => {
+    const handle = () => {
+      for (const [key, value] of Object.entries(pendingData.current)) {
+        try {
+          const blob = new Blob([JSON.stringify({ key, value })], { type: "application/json" });
+          navigator.sendBeacon("/api/data", blob);
+        } catch {}
+      }
+    };
+    window.addEventListener("beforeunload", handle);
+    return () => window.removeEventListener("beforeunload", handle);
+  }, []);
+
+  // DB から正常ロードできた場合のみ保存を有効化
   useEffect(() => { if (saveEnabled) debouncedSave("mq-projects", projects); }, [projects, saveEnabled, debouncedSave]);
   useEffect(() => { if (saveEnabled) debouncedSave("mq-mf", mf); },           [mf, saveEnabled, debouncedSave]);
   useEffect(() => { if (saveEnabled) debouncedSave("mq-ab", ab); },            [ab, saveEnabled, debouncedSave]);
@@ -101,6 +171,24 @@ export default function MQDashboard({ onLogout }: { onLogout: () => void }) {
   useEffect(() => { if (saveEnabled) debouncedSave("mq-prev",  prev); },       [prev,  saveEnabled, debouncedSave]);
   useEffect(() => { if (saveEnabled) debouncedSave("mq-prev2", prev2); },      [prev2, saveEnabled, debouncedSave]);
   useEffect(() => { if (saveEnabled) debouncedSave("mq-promo", promoPlan); },  [promoPlan, saveEnabled, debouncedSave]);
+
+  // ── 自動バックアップ（30分ごと・最大10世代 localStorage 保存）──
+  const takeSnapshot = useCallback(() => {
+    try {
+      const existing: BackupSnapshot[] = JSON.parse(localStorage.getItem("mq-snapshots") || "[]");
+      const snap: BackupSnapshot = { ts: Date.now(), data: { ...currentDataRef.current } };
+      localStorage.setItem("mq-snapshots", JSON.stringify([snap, ...existing].slice(0, 10)));
+      return snap;
+    } catch {}
+    return null;
+  }, []);
+
+  useEffect(() => {
+    if (!saveEnabled) return;
+    takeSnapshot(); // ロード完了直後に即時スナップショット
+    const id = setInterval(takeSnapshot, 30 * 60 * 1000);
+    return () => clearInterval(id);
+  }, [saveEnabled, takeSnapshot]);
 
   // ── 計算 ──────────────────────────────────────────────────
   const comp = useMemo(() => computeData(projects, mf), [projects, mf]);
@@ -134,6 +222,20 @@ export default function MQDashboard({ onLogout }: { onLogout: () => void }) {
     if (editP) setProjects(prev => prev.map(x => x.id===editP.id ? {...p,id:editP.id} : x));
     else { const newId = Math.max(0,...projects.map(x=>x.id))+1; setProjects(prev => [...prev,{...p,id:newId}]); }
   };
+
+  // バックアップから復元
+  const handleRestoreBackup = useCallback((snap: BackupSnapshot) => {
+    if (!window.confirm("このバックアップから復元しますか？現在のデータは上書きされます。")) return;
+    setProjects(snap.data.projects);
+    setMf(snap.data.mf);
+    setAb(snap.data.ab);
+    setTargets(snap.data.targets);
+    setBs(snap.data.bs);
+    setPrev(snap.data.prev);
+    setPrev2(snap.data.prev2);
+    setPromoPlan(snap.data.promoPlan);
+    setShowBackupM(false);
+  }, []);
 
   // ── データ読み込み中のスピナー ───────────────────────────
   if (!dataLoaded) {
@@ -187,6 +289,8 @@ export default function MQDashboard({ onLogout }: { onLogout: () => void }) {
       <Header comp={comp} targets={targets}
         onOpenTargets={() => setShowTM(true)}
         onOpenBS={() => setShowBM(true)}
+        onOpenBackup={() => setShowBackupM(true)}
+        saveStatus={saveStatus}
         onLogout={onLogout}/>
 
       <div style={{ position:"sticky", top:0, zIndex:100, background:"#ffffff", borderBottom:"1px solid #e2e8f0", boxShadow:"0 1px 4px rgba(15,23,42,.06)" }}>
@@ -226,6 +330,7 @@ export default function MQDashboard({ onLogout }: { onLogout: () => void }) {
       {showTM && <TargetModal targets={targets} onSave={setTargets} onClose={() => setShowTM(false)}/>}
       {showBM && <BSModal bs={bs} onSave={setBs} onClose={() => setShowBM(false)}/>}
       {showPrevM && <PrevModal prev={prev} prev2={prev2} onSave={(p, p2) => { setPrev(p); setPrev2(p2); }} onClose={() => setShowPrevM(false)}/>}
+      {showBackupM && <BackupModal onRestore={handleRestoreBackup} onTakeSnapshot={takeSnapshot} onClose={() => setShowBackupM(false)}/>}
     </div>
   );
 }

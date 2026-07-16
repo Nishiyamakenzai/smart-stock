@@ -181,3 +181,17 @@ export interface PromoPlanData {
   monthly: MonthlyPromoBudget;
   annualTarget: number; // ユーザーが自由設定する年間目標予算
 }
+
+export interface BackupSnapshot {
+  ts: number;
+  data: {
+    projects: Project[];
+    mf: MonthlyFixed;
+    ab: AnnualBudget;
+    targets: Targets;
+    bs: BSData;
+    prev: PrevPeriod;
+    prev2: PrevPeriod;
+    promoPlan: PromoPlanData;
+  };
+}
