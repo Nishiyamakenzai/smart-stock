@@ -10,6 +10,8 @@ interface HeaderProps {
   targets: Targets;
   onOpenTargets: () => void;
   onOpenBS: () => void;
+  onOpenBackup: () => void;
+  saveStatus: "idle" | "saving" | "saved" | "error";
   onLogout: () => void;
 }
 
@@ -20,7 +22,7 @@ const KPI_STYLES = [
   { grad:"linear-gradient(135deg,#f59e0b,#d97706)", shadow:"rgba(245,158,11,.35)" },
 ];
 
-export default function Header({ comp, targets, onOpenTargets, onOpenBS, onLogout }: HeaderProps) {
+export default function Header({ comp, targets, onOpenTargets, onOpenBS, onOpenBackup, saveStatus, onLogout }: HeaderProps) {
   const kpis = [
     { l:"PQ 売上",  v:comp.totalPQ, t:targets.pq, u:"万", fmt: (v:number) => fmt1(v) },
     { l:"MQ 粗利",  v:comp.totalMQ, t:targets.mq, u:"万", fmt: (v:number) => fmt1(v) },
@@ -47,10 +49,27 @@ export default function Header({ comp, targets, onOpenTargets, onOpenBS, onLogou
             SMART COATING &amp; BUSINESS SOLUTIONS
           </div>
         </div>
-        <div className="header-top-btns" style={{ display:"flex", gap:6 }}>
+        <div className="header-top-btns" style={{ display:"flex", gap:6, alignItems:"center" }}>
+          {/* 保存状態インジケーター */}
+          {saveStatus === "saving" && (
+            <span style={{ fontSize:10, color:"rgba(255,255,255,.6)", fontWeight:600, whiteSpace:"nowrap" }}>
+              保存中...
+            </span>
+          )}
+          {saveStatus === "saved" && (
+            <span style={{ fontSize:10, color:"#86efac", fontWeight:700, whiteSpace:"nowrap" }}>
+              ✓ 保存済み
+            </span>
+          )}
+          {saveStatus === "error" && (
+            <span style={{ fontSize:10, color:"#fca5a5", fontWeight:700, whiteSpace:"nowrap" }}>
+              ⚠ 保存失敗
+            </span>
+          )}
           {[
             { label:"目標設定", onClick:onOpenTargets, color:"rgba(255,255,255,.15)", border:"rgba(255,255,255,.25)" },
             { label:"B/S",     onClick:onOpenBS,      color:"rgba(255,255,255,.15)", border:"rgba(255,255,255,.25)" },
+            { label:"バックアップ", onClick:onOpenBackup, color:"rgba(255,255,255,.15)", border:"rgba(255,255,255,.25)" },
             { label:"ログアウト", onClick:onLogout,   color:"transparent",           border:"rgba(255,255,255,.15)" },
           ].map(btn => (
             <button key={btn.label} onClick={btn.onClick} style={{
