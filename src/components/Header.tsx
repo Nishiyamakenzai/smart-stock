@@ -102,6 +102,16 @@ export default function Header({ comp, targets, onOpenTargets, onOpenBS, onOpenB
             transition:"background .15s",
             whiteSpace:"nowrap",
           }}>⛩️ 評価制度</Link>
+          <Link href="/projects" style={{
+            padding:"6px 12px",
+            background:"rgba(255,255,255,.15)",
+            border:"1px solid rgba(255,255,255,.25)",
+            borderRadius:8,
+            fontSize:11, fontWeight:600, color:"rgba(255,255,255,.85)",
+            textDecoration:"none",
+            transition:"background .15s",
+            whiteSpace:"nowrap",
+          }}>📋 案件進捗</Link>
         </div>
       </div>
 

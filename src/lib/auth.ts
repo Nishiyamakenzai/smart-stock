@@ -10,6 +10,9 @@ export const COOKIE_MAX_AGE = 60 * 60 * 24 * 30; // 30日
 // 評価制度専用の別セッション（COATEXの共有パスワードとは独立させる）
 export const EVAL_COOKIE_NAME = "eval-token";
 
+// 案件進捗管理システム専用の別セッション（COATEX・TASUKIの共有パスワードとは独立させる）
+export const PROJECT_COOKIE_NAME = "project-token";
+
 /** JWTを発行する */
 export async function signToken(payload: { id: string }): Promise<string> {
   return new SignJWT(payload)
