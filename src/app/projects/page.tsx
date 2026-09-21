@@ -4,7 +4,7 @@ import Link from "next/link";
 import type { Project, ProjectStatus } from "@/lib/project-types";
 import {
   PROJECT_STATUS_LIST, PROJECT_STATUS_ICONS, PROJECT_STATUS_COLORS,
-  getCurrentProcess, getNextProcess, countDone, stagnationDays, formatDate,
+  getCurrentProcess, getNextProcess, countDone, stagnationDays, formatDate, isFullyCompleted,
 } from "@/lib/project-types";
 
 const STAGNATION_ALERT_DAYS = 3;
@@ -15,6 +15,7 @@ export default function ProjectListPage() {
   const [keyword, setKeyword] = useState("");
   const [statusFilter, setStatusFilter] = useState<ProjectStatus | "全て">("全て");
   const [onlyAlert, setOnlyAlert] = useState(false);
+  const [showDone, setShowDone] = useState(false);
 
   useEffect(() => {
     fetch("/api/projects")
@@ -36,6 +37,9 @@ export default function ProjectListPage() {
       return true;
     });
   }, [projects, keyword, statusFilter, onlyAlert]);
+
+  const ongoing = filtered.filter((p) => !isFullyCompleted(p.processes ?? []));
+  const done = filtered.filter((p) => isFullyCompleted(p.processes ?? []));
 
   return (
     <div style={{ padding: "14px 14px 24px" }}>
@@ -76,49 +80,78 @@ export default function ProjectListPage() {
       ) : filtered.length === 0 ? (
         <div style={{ textAlign: "center", padding: 40, color: "#94a3b8", fontSize: 13 }}>該当する案件がありません</div>
       ) : (
-        filtered.map((p) => {
-          const processes = p.processes ?? [];
-          const current = getCurrentProcess(processes);
-          const next = getNextProcess(processes);
-          const { done, total } = countDone(processes);
-          const days = stagnationDays(processes, p.updated_at);
-          const alert = days >= STAGNATION_ALERT_DAYS && p.status === "進行中";
-          return (
-            <Link key={p.id} href={`/projects/${p.id}`} className="card" style={{ display: "block", textDecoration: "none", color: "inherit" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
-                <div>
-                  <div style={{ fontSize: 15, fontWeight: 800, color: "#0f172a" }}>{p.name}</div>
-                  <div style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>{p.customer_name}</div>
+        <>
+          {ongoing.length === 0 ? (
+            <div style={{ textAlign: "center", padding: 24, color: "#94a3b8", fontSize: 13 }}>進行中の案件はありません</div>
+          ) : (
+            ongoing.map((p) => <ProjectCard key={p.id} project={p} />)
+          )}
+
+          {done.length > 0 && (
+            <div style={{ marginTop: 18 }}>
+              <button
+                onClick={() => setShowDone(!showDone)}
+                className="btn-outline"
+                style={{ width: "100%" }}
+              >
+                📁 完了フォルダ（{done.length}件） {showDone ? "▲" : "▼"}
+              </button>
+              {showDone && (
+                <div style={{ marginTop: 10 }}>
+                  {done.map((p) => <ProjectCard key={p.id} project={p} muted />)}
                 </div>
-                <span
-                  className="tag"
-                  style={{ background: PROJECT_STATUS_COLORS[p.status] + "1a", color: PROJECT_STATUS_COLORS[p.status] }}
-                >
-                  {PROJECT_STATUS_ICONS[p.status]} {p.status}
-                </span>
-              </div>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 6, fontSize: 12, color: "#334155", marginTop: 8 }}>
-                <span style={{ background: "#f1f5f9", padding: "3px 8px", borderRadius: 8 }}>
-                  現在：{current ? current.name : "全工程完了"}
-                </span>
-                {next && (
-                  <span style={{ background: "#eff6ff", color: "#1d4ed8", padding: "3px 8px", borderRadius: 8 }}>
-                    次：{next.name}
-                  </span>
-                )}
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 10, fontSize: 11, color: "#94a3b8" }}>
-                <span>発生日 {formatDate(p.occurred_at)} ／ 進捗 {done}/{total}</span>
-                {alert ? (
-                  <span style={{ color: "#dc2626", fontWeight: 700 }}>⚠️ {days}日停滞</span>
-                ) : (
-                  <span>正常</span>
-                )}
-              </div>
-            </Link>
-          );
-        })
+              )}
+            </div>
+          )}
+        </>
       )}
     </div>
+  );
+}
+
+function ProjectCard({ project: p, muted }: { project: Project; muted?: boolean }) {
+  const processes = p.processes ?? [];
+  const current = getCurrentProcess(processes);
+  const next = getNextProcess(processes);
+  const { done, total } = countDone(processes);
+  const days = stagnationDays(processes, p.updated_at);
+  const alert = days >= STAGNATION_ALERT_DAYS && p.status === "進行中";
+  return (
+    <Link
+      href={`/projects/${p.id}`}
+      className="card"
+      style={{ display: "block", textDecoration: "none", color: "inherit", opacity: muted ? 0.75 : 1 }}
+    >
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
+        <div>
+          <div style={{ fontSize: 15, fontWeight: 800, color: "#0f172a" }}>{p.name}</div>
+          <div style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>{p.customer_name}</div>
+        </div>
+        <span
+          className="tag"
+          style={{ background: PROJECT_STATUS_COLORS[p.status] + "1a", color: PROJECT_STATUS_COLORS[p.status] }}
+        >
+          {PROJECT_STATUS_ICONS[p.status]} {p.status}
+        </span>
+      </div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, fontSize: 12, color: "#334155", marginTop: 8 }}>
+        <span style={{ background: "#f1f5f9", padding: "3px 8px", borderRadius: 8 }}>
+          現在：{current ? current.name : "全工程完了"}
+        </span>
+        {next && (
+          <span style={{ background: "#eff6ff", color: "#1d4ed8", padding: "3px 8px", borderRadius: 8 }}>
+            次：{next.name}
+          </span>
+        )}
+      </div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 10, fontSize: 11, color: "#94a3b8" }}>
+        <span>発生日 {formatDate(p.occurred_at)} ／ 進捗 {done}/{total}</span>
+        {alert ? (
+          <span style={{ color: "#dc2626", fontWeight: 700 }}>⚠️ {days}日停滞</span>
+        ) : (
+          <span>正常</span>
+        )}
+      </div>
+    </Link>
   );
 }
