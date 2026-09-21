@@ -7,13 +7,14 @@ interface Props {
   required?: boolean;
   confirmLabel?: string;
   confirmColor?: string;
+  defaultValue?: string;
   onConfirm: (reason: string) => void;
   onClose: () => void;
 }
 
-/** 不要・保留・問題ありを押したときの理由入力シート */
-export default function ReasonModal({ title, placeholder = "理由・補足（任意）", required, confirmLabel = "確定", confirmColor = "#3b82f6", onConfirm, onClose }: Props) {
-  const [text, setText] = useState("");
+/** 完了・不要・保留・問題あり・コメント編集で使う理由/コメント入力シート */
+export default function ReasonModal({ title, placeholder = "理由・補足（任意）", required, confirmLabel = "確定", confirmColor = "#3b82f6", defaultValue = "", onConfirm, onClose }: Props) {
+  const [text, setText] = useState(defaultValue);
   const [err, setErr] = useState("");
 
   const handleConfirm = () => {

@@ -39,8 +39,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       update.actual_assignee_id = actorId;
       update.completed_at = new Date().toISOString();
       update.problem_note = null;
+      update.note = body.reason ?? before.note;
       toStatus = "完了";
-      logDetail = "完了";
+      logDetail = body.reason ? `完了：${body.reason}` : "完了";
       break;
     case "skip":
       update.status = "不要";

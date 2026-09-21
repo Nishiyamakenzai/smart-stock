@@ -147,7 +147,8 @@ create index if not exists idx_pm_logs_project on pm_process_logs(project_id, cr
 -- ────────────────────────────────────────────────────────
 insert into pm_sources (name, display_order) values
   ('HP', 1), ('Google', 2), ('紹介', 3), ('OB', 4),
-  ('チラシ', 5), ('看板', 6), ('通りがかり', 7), ('その他', 8)
+  ('チラシ', 5), ('看板', 6), ('通りがかり', 7), ('その他', 8),
+  ('ポータル', 9), ('セミナー', 10), ('イベント', 11)
 on conflict (name) do nothing;
 
 -- ────────────────────────────────────────────────────────
@@ -193,5 +194,6 @@ insert into pm_process_templates (name, category, sort_order) values
   ('領収書', '完工・アフター', 29),
   ('ファイル渡し', '完工・アフター', 30),
   ('口コミ訴求', '完工・アフター', 31),
-  ('訪販ステッカー', '完工・アフター', 32)
+  ('訪販ステッカー', '完工・アフター', 32),
+  ('完了', '完工・アフター', 33)
 on conflict (name) do nothing;

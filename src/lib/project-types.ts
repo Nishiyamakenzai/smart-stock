@@ -151,6 +151,18 @@ export function countDone(processes: ProjectProcess[]): { done: number; total: n
   return { done, total };
 }
 
+/**
+ * 案件が最後まで完了しているか（＝「完了フォルダ」に振り分けるべきか）を判定する。
+ * 最終工程「完了」があればその状態を見る。古い案件で「完了」工程が無い場合は、
+ * 全工程が完了・不要のどちらかで埋まっていれば完了扱いにする。
+ */
+export function isFullyCompleted(processes: ProjectProcess[]): boolean {
+  if (processes.length === 0) return false;
+  const finalStep = processes.find((p) => p.name === "完了");
+  if (finalStep) return finalStep.status === "完了";
+  return getCurrentProcess(processes) === null;
+}
+
 /** 最終更新（工程の中で最も新しい completed_at / updated_at）からの停滞日数 */
 export function stagnationDays(processes: ProjectProcess[], projectUpdatedAt: string): number {
   const dates = processes

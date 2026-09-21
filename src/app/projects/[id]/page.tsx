@@ -11,7 +11,7 @@ import MemberPickerModal from "@/components/projects/MemberPickerModal";
 import ReasonModal from "@/components/projects/ReasonModal";
 import ProjectStatusModal from "@/components/projects/ProjectStatusModal";
 
-type PendingAction = { processId: string; action: "skip" | "hold" | "problem" } | null;
+type PendingAction = { processId: string; action: "complete" | "skip" | "hold" | "problem" } | null;
 type ActorPickerFor = { processId: string; action: string; reason?: string } | null;
 
 export default function ProjectDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -28,6 +28,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
   const [actorPickerFor, setActorPickerFor] = useState<ActorPickerFor>(null);
   const [plannedPickerFor, setPlannedPickerFor] = useState<string | null>(null);
+  const [notePickerFor, setNotePickerFor] = useState<string | null>(null);
   const [toast, setToast] = useState("");
 
   const autoExpandedRef = useRef(false);
@@ -90,6 +91,22 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
       const data = await res.json();
       setProject(data.project);
       showToast("予定担当者を更新しました");
+      reload();
+    }
+  };
+
+  /** コメントの追加・編集（状態は変えず、いつでも書ける） */
+  const setNote = async (processId: string, note: string) => {
+    setNotePickerFor(null);
+    const res = await fetch(`/api/projects/${id}/processes/${processId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "update", note, actor_id: currentId }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      setProject(data.project);
+      showToast("コメントを保存しました");
       reload();
     }
   };
@@ -177,13 +194,14 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
               isCurrent={current?.id === p.id}
               expanded={expandedId === p.id}
               onToggle={() => setExpandedId(expandedId === p.id ? null : p.id)}
-              onComplete={() => requestAction(p.id, "complete")}
+              onComplete={() => setPendingAction({ processId: p.id, action: "complete" })}
               onSkip={(reason) => requestAction(p.id, "skip", reason)}
               onHold={(reason) => requestAction(p.id, "hold", reason)}
               onProblem={(reason) => requestAction(p.id, "problem", reason)}
               onReopen={() => requestAction(p.id, "reopen")}
               onOpenReasonModal={(action) => setPendingAction({ processId: p.id, action })}
               onSetPlanned={() => setPlannedPickerFor(p.id)}
+              onEditNote={() => setNotePickerFor(p.id)}
             />
           ))}
         </div>
@@ -241,16 +259,43 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
       {pendingAction && (
         <ReasonModal
-          title={pendingAction.action === "skip" ? "不要にする理由" : pendingAction.action === "hold" ? "保留にする理由" : "問題ありの内容"}
+          title={
+            pendingAction.action === "complete" ? "完了メモ（任意）"
+            : pendingAction.action === "skip" ? "不要にする理由"
+            : pendingAction.action === "hold" ? "保留にする理由"
+            : "問題ありの内容"
+          }
           required={pendingAction.action === "skip"}
-          confirmLabel={pendingAction.action === "skip" ? "不要にする" : pendingAction.action === "hold" ? "保留にする" : "問題ありにする"}
-          confirmColor={pendingAction.action === "skip" ? "#64748b" : pendingAction.action === "hold" ? "#f59e0b" : "#dc2626"}
+          confirmLabel={
+            pendingAction.action === "complete" ? "完了する"
+            : pendingAction.action === "skip" ? "不要にする"
+            : pendingAction.action === "hold" ? "保留にする"
+            : "問題ありにする"
+          }
+          confirmColor={
+            pendingAction.action === "complete" ? "#10b981"
+            : pendingAction.action === "skip" ? "#64748b"
+            : pendingAction.action === "hold" ? "#f59e0b"
+            : "#dc2626"
+          }
           onClose={() => setPendingAction(null)}
           onConfirm={(reason) => {
             const { processId, action } = pendingAction;
             setPendingAction(null);
-            requestAction(processId, action, reason);
+            requestAction(processId, action, reason || undefined);
           }}
+        />
+      )}
+
+      {notePickerFor && (
+        <ReasonModal
+          title="コメントを追加・編集"
+          placeholder="必要であれば自由にコメントを入力（任意）"
+          confirmLabel="保存する"
+          confirmColor="#3b82f6"
+          defaultValue={processes.find((p) => p.id === notePickerFor)?.note ?? ""}
+          onClose={() => setNotePickerFor(null)}
+          onConfirm={(text) => setNote(notePickerFor, text)}
         />
       )}
 
@@ -267,7 +312,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 }
 
 function ProcessRow({
-  process, isCurrent, expanded, onToggle, onComplete, onSkip, onHold, onProblem, onReopen, onOpenReasonModal, onSetPlanned,
+  process, isCurrent, expanded, onToggle, onComplete, onSkip, onHold, onProblem, onReopen, onOpenReasonModal, onSetPlanned, onEditNote,
 }: {
   process: ProjectProcess;
   isCurrent: boolean;
@@ -280,6 +325,7 @@ function ProcessRow({
   onReopen: () => void;
   onOpenReasonModal: (action: "skip" | "hold" | "problem") => void;
   onSetPlanned: () => void;
+  onEditNote: () => void;
 }) {
   const resolved = process.status === "完了" || process.status === "不要";
   return (
@@ -303,8 +349,8 @@ function ProcessRow({
         </span>
       </div>
 
-      {!resolved && (
-        <div style={{ marginTop: 8, marginLeft: 28 }}>
+      <div style={{ marginTop: 8, marginLeft: 28, display: "flex", flexWrap: "wrap", gap: 6 }}>
+        {!resolved && (
           <button
             onClick={(e) => { e.stopPropagation(); onSetPlanned(); }}
             style={{
@@ -316,8 +362,19 @@ function ProcessRow({
           >
             予定担当者：{process.planned_assignee ? process.planned_assignee.name : "未定（タップで選択）"}
           </button>
-        </div>
-      )}
+        )}
+        <button
+          onClick={(e) => { e.stopPropagation(); onEditNote(); }}
+          style={{
+            fontSize: 11, fontWeight: 700, cursor: "pointer", border: "none",
+            background: process.status !== "完了" && process.status !== "不要" && process.note ? "#eff6ff" : "#f1f5f9",
+            color: process.status !== "完了" && process.status !== "不要" && process.note ? "#1d4ed8" : "#94a3b8",
+            padding: "3px 10px", borderRadius: 99,
+          }}
+        >
+          💬 {process.status !== "保留" && process.note ? process.note : "コメントを追加"}
+        </button>
+      </div>
 
       {expanded && !resolved && (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6, marginTop: 12 }}>
