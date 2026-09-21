@@ -12,6 +12,7 @@ import ReasonModal from "@/components/projects/ReasonModal";
 import ProjectStatusModal from "@/components/projects/ProjectStatusModal";
 
 type PendingAction = { processId: string; action: "skip" | "hold" | "problem" } | null;
+type ActorPickerFor = { processId: string; action: string; reason?: string } | null;
 
 export default function ProjectDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -25,7 +26,8 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
   const [showHistory, setShowHistory] = useState(false);
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
-  const [pickerFor, setPickerFor] = useState<{ processId: string; action: string; reason?: string } | null>(null);
+  const [actorPickerFor, setActorPickerFor] = useState<ActorPickerFor>(null);
+  const [plannedPickerFor, setPlannedPickerFor] = useState<string | null>(null);
   const [toast, setToast] = useState("");
 
   const autoExpandedRef = useRef(false);
@@ -52,12 +54,20 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(""), 2400); };
 
-  const runAction = async (processId: string, action: string, reason?: string) => {
-    if (!currentId) { setPickerFor({ processId, action, reason }); return; }
+  /** 完了・不要・保留・問題あり・元に戻す ―― どれも「誰が対応したか」を毎回選んでもらう */
+  const requestAction = (processId: string, action: string, reason?: string) => {
+    setActorPickerFor({ processId, action, reason });
+  };
+
+  const handleActorSelect = async (memberId: string) => {
+    if (!actorPickerFor) return;
+    setCurrentId(memberId);
+    const { processId, action, reason } = actorPickerFor;
+    setActorPickerFor(null);
     const res = await fetch(`/api/projects/${id}/processes/${processId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action, actor_id: currentId, reason }),
+      body: JSON.stringify({ action, actor_id: memberId, reason }),
     });
     if (res.ok) {
       const data = await res.json();
@@ -68,23 +78,19 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
     }
   };
 
-  const handlePickerSelect = (memberId: string) => {
-    setCurrentId(memberId);
-    if (pickerFor) {
-      const { processId, action, reason } = pickerFor;
-      setPickerFor(null);
-      fetch(`/api/projects/${id}/processes/${processId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action, actor_id: memberId, reason }),
-      }).then(async (res) => {
-        if (res.ok) {
-          const data = await res.json();
-          setProject(data.project);
-          setExpandedId(null);
-          reload();
-        }
-      });
+  /** 予定担当者の設定・変更（誰でもいつでも選び直せる） */
+  const setPlannedAssignee = async (processId: string, memberId: string | null) => {
+    setPlannedPickerFor(null);
+    const res = await fetch(`/api/projects/${id}/processes/${processId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "update", planned_assignee_id: memberId }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      setProject(data.project);
+      showToast("予定担当者を更新しました");
+      reload();
     }
   };
 
@@ -171,12 +177,13 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
               isCurrent={current?.id === p.id}
               expanded={expandedId === p.id}
               onToggle={() => setExpandedId(expandedId === p.id ? null : p.id)}
-              onComplete={() => runAction(p.id, "complete")}
-              onSkip={(reason) => runAction(p.id, "skip", reason)}
-              onHold={(reason) => runAction(p.id, "hold", reason)}
-              onProblem={(reason) => runAction(p.id, "problem", reason)}
-              onReopen={() => runAction(p.id, "reopen")}
+              onComplete={() => requestAction(p.id, "complete")}
+              onSkip={(reason) => requestAction(p.id, "skip", reason)}
+              onHold={(reason) => requestAction(p.id, "hold", reason)}
+              onProblem={(reason) => requestAction(p.id, "problem", reason)}
+              onReopen={() => requestAction(p.id, "reopen")}
               onOpenReasonModal={(action) => setPendingAction({ processId: p.id, action })}
+              onSetPlanned={() => setPlannedPickerFor(p.id)}
             />
           ))}
         </div>
@@ -210,8 +217,26 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
         </div>
       )}
 
-      {pickerFor && (
-        <MemberPickerModal members={members} onSelect={handlePickerSelect} onClose={() => setPickerFor(null)} />
+      {actorPickerFor && (
+        <MemberPickerModal
+          members={members}
+          title="対応者を選択"
+          highlightId={currentId}
+          onSelect={handleActorSelect}
+          onClose={() => setActorPickerFor(null)}
+        />
+      )}
+
+      {plannedPickerFor && (
+        <MemberPickerModal
+          members={members}
+          title="予定担当者を選択"
+          highlightId={processes.find((p) => p.id === plannedPickerFor)?.planned_assignee_id}
+          allowClear
+          onSelect={(memberId) => setPlannedAssignee(plannedPickerFor, memberId)}
+          onClear={() => setPlannedAssignee(plannedPickerFor, null)}
+          onClose={() => setPlannedPickerFor(null)}
+        />
       )}
 
       {pendingAction && (
@@ -224,7 +249,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
           onConfirm={(reason) => {
             const { processId, action } = pendingAction;
             setPendingAction(null);
-            runAction(processId, action, reason);
+            requestAction(processId, action, reason);
           }}
         />
       )}
@@ -242,7 +267,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 }
 
 function ProcessRow({
-  process, isCurrent, expanded, onToggle, onComplete, onSkip, onHold, onProblem, onReopen, onOpenReasonModal,
+  process, isCurrent, expanded, onToggle, onComplete, onSkip, onHold, onProblem, onReopen, onOpenReasonModal, onSetPlanned,
 }: {
   process: ProjectProcess;
   isCurrent: boolean;
@@ -254,6 +279,7 @@ function ProcessRow({
   onProblem: (reason: string) => void;
   onReopen: () => void;
   onOpenReasonModal: (action: "skip" | "hold" | "problem") => void;
+  onSetPlanned: () => void;
 }) {
   const resolved = process.status === "完了" || process.status === "不要";
   return (
@@ -264,10 +290,9 @@ function ProcessRow({
           <div style={{ fontSize: 14, fontWeight: isCurrent ? 800 : 600, color: "#0f172a" }}>{process.name}</div>
           <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 1 }}>
             {process.status === "完了" && `${process.actual_assignee?.name ?? "―"} ・ ${formatDateTime(process.completed_at)}`}
-            {process.status === "不要" && `不要：${process.skip_reason || "理由なし"}`}
+            {process.status === "不要" && `不要：${process.skip_reason || "理由なし"}（${process.actual_assignee?.name ?? "―"}）`}
             {process.status === "保留" && `保留：${process.note || "理由なし"}`}
             {process.status === "問題あり" && `⚠️ ${process.problem_note || "内容未記入"}`}
-            {process.status === "未完了" && (process.planned_assignee ? `予定：${process.planned_assignee.name}` : "")}
           </div>
         </div>
         <span
@@ -277,6 +302,22 @@ function ProcessRow({
           {process.status}
         </span>
       </div>
+
+      {!resolved && (
+        <div style={{ marginTop: 8, marginLeft: 28 }}>
+          <button
+            onClick={(e) => { e.stopPropagation(); onSetPlanned(); }}
+            style={{
+              fontSize: 11, fontWeight: 700, cursor: "pointer", border: "none",
+              background: process.planned_assignee ? `${process.planned_assignee.color}18` : "#f1f5f9",
+              color: process.planned_assignee ? process.planned_assignee.color : "#94a3b8",
+              padding: "3px 10px", borderRadius: 99,
+            }}
+          >
+            予定担当者：{process.planned_assignee ? process.planned_assignee.name : "未定（タップで選択）"}
+          </button>
+        </div>
+      )}
 
       {expanded && !resolved && (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6, marginTop: 12 }}>
