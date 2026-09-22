@@ -1,7 +1,8 @@
 "use client";
 import { useState, useEffect, useCallback, useRef, use } from "react";
 import Link from "next/link";
-import type { Project, ProjectProcess, ProcessLog, LostReason } from "@/lib/project-types";
+import { useRouter } from "next/navigation";
+import type { Project, ProjectProcess, ProcessLog, LostReason, Source } from "@/lib/project-types";
 import {
   PROJECT_STATUS_ICONS, PROJECT_STATUS_COLORS, PROCESS_STATUS_ICONS, PROCESS_STATUS_COLORS,
   getCurrentProcess, formatDate, formatDateTime, formatYen,
@@ -10,21 +11,28 @@ import { useCurrentMember } from "@/lib/useCurrentMember";
 import MemberPickerModal from "@/components/projects/MemberPickerModal";
 import ReasonModal from "@/components/projects/ReasonModal";
 import ProjectStatusModal from "@/components/projects/ProjectStatusModal";
+import ProjectEditModal from "@/components/projects/ProjectEditModal";
+import ConfirmModal from "@/components/projects/ConfirmModal";
 
 type PendingAction = { processId: string; action: "complete" | "skip" | "hold" | "problem" } | null;
 type ActorPickerFor = { processId: string; action: string; reason?: string } | null;
 
 export default function ProjectDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
+  const router = useRouter();
   const { members, currentId, setCurrentId } = useCurrentMember();
 
   const [project, setProject] = useState<Project | null>(null);
   const [logs, setLogs] = useState<ProcessLog[]>([]);
   const [lostReasons, setLostReasons] = useState<LostReason[]>([]);
+  const [sources, setSources] = useState<Source[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [showHistory, setShowHistory] = useState(false);
   const [showStatusModal, setShowStatusModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
   const [actorPickerFor, setActorPickerFor] = useState<ActorPickerFor>(null);
   const [plannedPickerFor, setPlannedPickerFor] = useState<string | null>(null);
@@ -51,6 +59,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
   useEffect(() => { reload(); }, [reload]);
   useEffect(() => {
     fetch("/api/project-lost-reasons").then((r) => r.json()).then((d) => setLostReasons(Array.isArray(d) ? d.filter((r: LostReason) => r.is_active) : []));
+    fetch("/api/project-sources").then((r) => r.json()).then((d) => setSources(Array.isArray(d) ? d.filter((s: Source) => s.is_active) : []));
   }, []);
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(""), 2400); };
@@ -124,6 +133,33 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
     }
   };
 
+  /** 間違って登録した内容の訂正（基本情報の編集） */
+  const editProject = async (payload: Record<string, unknown>) => {
+    const res = await fetch(`/api/projects/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...payload, changed_by: currentId }),
+    });
+    if (res.ok) {
+      setShowEditModal(false);
+      showToast("案件情報を更新しました");
+      reload();
+    }
+  };
+
+  /** 間違って登録した案件・不要になった案件の完全削除 */
+  const deleteProject = async () => {
+    setDeleting(true);
+    const res = await fetch(`/api/projects/${id}`, { method: "DELETE" });
+    if (res.ok) {
+      router.push("/projects");
+    } else {
+      setDeleting(false);
+      setShowDeleteConfirm(false);
+      showToast("削除に失敗しました");
+    }
+  };
+
   if (loading) return <div style={{ textAlign: "center", padding: 60, color: "#94a3b8" }}>読み込み中...</div>;
   if (!project) return <div style={{ textAlign: "center", padding: 60, color: "#94a3b8" }}>案件が見つかりません</div>;
 
@@ -133,7 +169,17 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
   return (
     <div style={{ padding: "14px 14px 40px" }}>
-      <Link href="/projects" style={{ fontSize: 12, color: "#64748b", textDecoration: "none" }}>← 案件一覧</Link>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <Link href="/projects" style={{ fontSize: 12, color: "#64748b", textDecoration: "none" }}>← 案件一覧</Link>
+        <div style={{ display: "flex", gap: 12 }}>
+          <button onClick={() => setShowEditModal(true)} style={{ fontSize: 12, color: "#3b82f6", background: "none", border: "none", cursor: "pointer", fontWeight: 700 }}>
+            ✏️ 編集
+          </button>
+          <button onClick={() => setShowDeleteConfirm(true)} style={{ fontSize: 12, color: "#dc2626", background: "none", border: "none", cursor: "pointer", fontWeight: 700 }}>
+            🗑 削除
+          </button>
+        </div>
+      </div>
 
       <div className="card" style={{ marginTop: 10 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
@@ -305,6 +351,25 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
           lostReasons={lostReasons}
           onClose={() => setShowStatusModal(false)}
           onConfirm={changeProjectStatus}
+        />
+      )}
+
+      {showEditModal && (
+        <ProjectEditModal
+          project={project}
+          sources={sources}
+          onClose={() => setShowEditModal(false)}
+          onConfirm={editProject}
+        />
+      )}
+
+      {showDeleteConfirm && (
+        <ConfirmModal
+          title="この案件を削除しますか？"
+          description={`「${project.name}」を削除すると、工程・履歴もすべて消え、元に戻せません。間違って登録した場合はこのまま削除できます。失注・取消として記録を残したい場合は、削除ではなく「案件状態」の変更をお使いください。`}
+          confirmLabel={deleting ? "削除中..." : "削除する"}
+          onClose={() => setShowDeleteConfirm(false)}
+          onConfirm={deleteProject}
         />
       )}
     </div>

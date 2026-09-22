@@ -87,3 +87,21 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   return Response.json(full);
 }
+
+/**
+ * DELETE /api/projects/[id] — 案件を完全に削除（工程・履歴も連動して削除される）
+ * 間違って登録した案件など、記録として残す必要が無いものを消すために使う。
+ * 失注・取消として記録を残したい場合は、削除ではなく案件状態の変更を使う。
+ */
+export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const sb = getSupabase();
+
+  const { data: existing, error: findError } = await sb.from("pm_projects").select("id, name").eq("id", id).single();
+  if (findError || !existing) return Response.json({ error: "案件が見つかりません" }, { status: 404 });
+
+  const { error } = await sb.from("pm_projects").delete().eq("id", id);
+  if (error) return Response.json({ error: error.message }, { status: 500 });
+
+  return Response.json({ ok: true });
+}
