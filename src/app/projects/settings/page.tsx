@@ -6,6 +6,7 @@ export default function ProjectSettingsPage() {
     { href: "/projects/settings/processes", icon: "🔧", label: "工程マスター", desc: "標準工程の追加・編集・並び替え・表示/非表示" },
     { href: "/projects/settings/masters", icon: "🗂️", label: "発生源・失注理由", desc: "選択肢の追加・編集" },
     { href: "/projects/settings/backups", icon: "💾", label: "データバックアップ", desc: "自動バックアップの確認・手動実行・ダウンロード" },
+    { href: "/projects/settings/account", icon: "🔑", label: "ログインID・パスワード変更", desc: "このシステム専用のログイン情報を変更" },
   ];
   return (
     <div style={{ padding: "16px 14px" }}>
