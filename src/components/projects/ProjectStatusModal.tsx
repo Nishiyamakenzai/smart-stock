@@ -57,7 +57,7 @@ export default function ProjectStatusModal({ currentStatus, lostReasons, onConfi
           <>
             <label style={{ fontSize: 12, fontWeight: 700, color: "#475569", display: "block", marginBottom: 6 }}>成約日</label>
             <input type="date" className="input-base" value={wonAt} onChange={(e) => setWonAt(e.target.value)} style={{ marginBottom: 12 }} />
-            <label style={{ fontSize: 12, fontWeight: 700, color: "#475569", display: "block", marginBottom: 6 }}>契約金額（円）*</label>
+            <label style={{ fontSize: 12, fontWeight: 700, color: "#475569", display: "block", marginBottom: 6 }}>契約金額（円・税込）*</label>
             <input type="number" className="input-base" value={contractAmount} onChange={(e) => setContractAmount(e.target.value)} placeholder="例：1500000" style={{ marginBottom: 12 }} />
           </>
         )}

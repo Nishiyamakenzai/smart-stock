@@ -262,7 +262,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
         </div>
 
         {project.status === "成約" && (
-          <div style={{ marginTop: 8, fontSize: 12, color: "#059669" }}>成約日 {formatDate(project.won_at)} ／ 契約金額 {formatYen(project.contract_amount)}</div>
+          <div style={{ marginTop: 8, fontSize: 12, color: "#059669" }}>成約日 {formatDate(project.won_at)} ／ 契約金額（税込） {formatYen(project.contract_amount)}</div>
         )}
         {project.status === "失注" && (
           <div style={{ marginTop: 8, fontSize: 12, color: "#dc2626" }}>
