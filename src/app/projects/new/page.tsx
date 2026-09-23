@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import type { Source } from "@/lib/project-types";
+import { googleMapsUrl, formatBuildingAge } from "@/lib/project-types";
 import { useCurrentMember } from "@/lib/useCurrentMember";
 import MemberPickerModal from "@/components/projects/MemberPickerModal";
 
@@ -42,7 +43,7 @@ export default function NewProjectPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name, customer_name: customerName, occurred_at: occurredAt, source_id: sourceId || null,
-          address, building_age: buildingAge, customer_age_range: customerAgeRange,
+          address, building_age: formatBuildingAge(buildingAge), customer_age_range: customerAgeRange,
           work_content: workContent, construction_period: constructionPeriod, created_by: currentId,
         }),
       });
@@ -90,12 +91,30 @@ export default function NewProjectPage() {
         </div>
         <div style={fieldWrap}>
           <label style={labelStyle}>住所</label>
-          <input className="input-base" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="例：富士吉田市〇〇" />
+          <div style={{ display: "flex", gap: 8 }}>
+            <input className="input-base" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="例：富士吉田市〇〇" style={{ flex: 1 }} />
+            {address.trim() && (
+              <a
+                href={googleMapsUrl(address)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-outline"
+                style={{ flexShrink: 0, display: "flex", alignItems: "center", textDecoration: "none" }}
+              >
+                🗺️ 地図
+              </a>
+            )}
+          </div>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}>
           <div>
             <label style={labelStyle}>築年数</label>
-            <input className="input-base" value={buildingAge} onChange={(e) => setBuildingAge(e.target.value)} placeholder="例：築18年" />
+            <input
+              className="input-base" inputMode="numeric" value={buildingAge}
+              onChange={(e) => setBuildingAge(e.target.value.replace(/[^\d]/g, ""))}
+              placeholder="例：18（数字だけ入力）"
+            />
+            {buildingAge && <div style={{ fontSize: 11, color: "#3b82f6", marginTop: 4 }}>→ {formatBuildingAge(buildingAge)}</div>}
           </div>
           <div>
             <label style={labelStyle}>お客様年齢・年代</label>

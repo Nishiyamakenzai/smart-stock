@@ -39,16 +39,16 @@ export async function POST(req: NextRequest) {
 
     const resend = new Resend(resendKey);
     const { error: sendError } = await resend.emails.send({
-      from: "案件進捗管理システム <onboarding@resend.dev>",
+      from: "ANDON <onboarding@resend.dev>",
       to: adminEmail,
-      subject: "【案件進捗管理システム】パスワードリセット認証コード",
+      subject: "【ANDON】パスワードリセット認証コード",
       html: `
         <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;background:#f0f4f8;border-radius:16px;">
           <div style="background:#fff;border-radius:12px;padding:28px 24px;box-shadow:0 2px 12px rgba(0,0,0,.08);">
             <div style="text-align:center;margin-bottom:24px;">
-              <div style="font-size:32px;">📋</div>
-              <div style="font-size:18px;font-weight:800;color:#0f172a;margin-top:8px;">案件進捗管理システム</div>
-              <div style="font-size:13px;color:#64748b;margin-top:4px;">パスワードリセット</div>
+              <div style="font-size:32px;">🏮</div>
+              <div style="font-size:18px;font-weight:800;color:#0f172a;margin-top:8px;">ANDON</div>
+              <div style="font-size:13px;color:#64748b;margin-top:4px;">案件進捗管理システム ／ パスワードリセット</div>
             </div>
             <p style="color:#475569;font-size:14px;margin-bottom:20px;">以下の認証コードを入力してください。</p>
             <div style="background:#eff6ff;border:2px solid #bfdbfe;border-radius:12px;padding:20px;text-align:center;margin-bottom:20px;">

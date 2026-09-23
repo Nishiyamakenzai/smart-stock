@@ -16,7 +16,7 @@ function TopBar({ onLogout }: { onLogout: () => void }) {
       }}
     >
       <Link href="/projects" style={{ textDecoration: "none", display: "flex", alignItems: "baseline", gap: 6 }}>
-        <span style={{ fontSize: 17, fontWeight: 900, color: "#1e293b" }}>📋 案件進捗管理</span>
+        <span style={{ fontSize: 17, fontWeight: 900, color: "#1e293b" }}>🏮 ANDON</span>
       </Link>
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
         {currentMember && (
@@ -76,10 +76,10 @@ export default function ProjectsLayout({ children }: { children: React.ReactNode
         mode={mode}
         onLogin={() => setLoggedIn(true)}
         basePath="/api/project-auth"
-        icon="📋"
-        brandTitle="案件進捗管理"
-        brandTagline="誰が見ても、次にやることが分かる。"
-        brandSub="PROJECT PROGRESS SYSTEM"
+        icon="🏮"
+        brandTitle="ANDON"
+        brandTagline="止まっている案件が、光る。"
+        brandSub="案件進捗管理システム"
         companyLine="西山建材工業"
         setupFooterText="このID・パスワードは案件進捗を扱う担当者全員で共有してください"
         loginFooterText="COATEX・TASUKIとは別のID・パスワードです"

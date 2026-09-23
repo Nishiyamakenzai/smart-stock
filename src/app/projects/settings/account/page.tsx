@@ -36,7 +36,7 @@ export default function AccountSettingsPage() {
       <Link href="/projects/settings" style={{ fontSize: 12, color: "#64748b", textDecoration: "none" }}>← 設定</Link>
       <div className="section-title" style={{ marginTop: 12 }}>ログインID・パスワードの変更</div>
       <p style={{ fontSize: 12, color: "#94a3b8", marginBottom: 14 }}>
-        案件進捗管理システム専用のログイン情報を、好きなID・パスワードに変更できます（COATEX・TASUKI・評価制度には影響しません）。
+        ANDON（案件進捗管理システム）専用のログイン情報を、好きなID・パスワードに変更できます（COATEX・TASUKI・評価制度には影響しません）。
       </p>
 
       {done ? (
