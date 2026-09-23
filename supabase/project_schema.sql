@@ -73,7 +73,7 @@ create table if not exists pm_projects (
   work_content text,                        -- 工事内容
   construction_period text,                 -- 工期
   status text not null default '進行中'
-    check (status in ('進行中', '成約', '保留', '失注', '取消')),
+    check (status in ('進行中', '成約', '施工中', '工事完了・最終確認', '完了', '保留', '失注', '取消')),
   won_at date,
   contract_amount bigint,
   lost_at date,

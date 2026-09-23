@@ -1,4 +1,5 @@
-export type ProjectStatus = "進行中" | "成約" | "保留" | "失注" | "取消";
+export type ProjectStatus =
+  | "進行中" | "成約" | "施工中" | "工事完了・最終確認" | "完了" | "保留" | "失注" | "取消";
 
 export type ProcessStatus = "未完了" | "進行中" | "完了" | "不要" | "保留" | "問題あり";
 
@@ -95,11 +96,16 @@ export interface ProcessLog {
   changed_by_member?: Member | null;
 }
 
-export const PROJECT_STATUS_LIST: ProjectStatus[] = ["進行中", "成約", "保留", "失注", "取消"];
+export const PROJECT_STATUS_LIST: ProjectStatus[] = [
+  "進行中", "成約", "施工中", "工事完了・最終確認", "完了", "保留", "失注", "取消",
+];
 
 export const PROJECT_STATUS_COLORS: Record<ProjectStatus, string> = {
   進行中: "#F59E0B",
   成約: "#10B981",
+  施工中: "#F97316",
+  "工事完了・最終確認": "#06B6D4",
+  完了: "#7C3AED",
   保留: "#3B82F6",
   失注: "#EF4444",
   取消: "#64748B",
@@ -108,6 +114,9 @@ export const PROJECT_STATUS_COLORS: Record<ProjectStatus, string> = {
 export const PROJECT_STATUS_ICONS: Record<ProjectStatus, string> = {
   進行中: "🟡",
   成約: "🟢",
+  施工中: "🏗️",
+  "工事完了・最終確認": "🔍",
+  完了: "🏁",
   保留: "🔵",
   失注: "🔴",
   取消: "⚫",

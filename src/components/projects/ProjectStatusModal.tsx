@@ -34,7 +34,7 @@ export default function ProjectStatusModal({ currentStatus, lostReasons, onConfi
         <div style={{ width: 36, height: 4, background: "#e2e8f0", borderRadius: 99, margin: "0 auto 16px" }} />
         <div style={{ fontSize: 15, fontWeight: 800, color: "#0f172a", marginBottom: 14 }}>案件状態を変更</div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginBottom: 16 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 8, marginBottom: 16 }}>
           {PROJECT_STATUS_LIST.map((s) => (
             <button
               key={s}
@@ -49,6 +49,9 @@ export default function ProjectStatusModal({ currentStatus, lostReasons, onConfi
             </button>
           ))}
         </div>
+        <p style={{ fontSize: 11, color: "#94a3b8", marginTop: -8, marginBottom: 16 }}>
+          「施工中」「工事完了・最終確認」「完了」は、対象の工程を完了にすると自動的に切り替わります。ここでは訂正のときだけ使ってください。
+        </p>
 
         {status === "成約" && (
           <>
