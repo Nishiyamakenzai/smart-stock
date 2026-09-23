@@ -146,12 +146,22 @@ export function getCurrentProcess(processes: ProjectProcess[]): ProjectProcess |
   return sorted.find((p) => p.status !== "完了" && p.status !== "不要") ?? null;
 }
 
-/** 現在工程より後で、未完了・不要以外の最初の工程を「次工程」として表示する */
-export function getNextProcess(processes: ProjectProcess[]): ProjectProcess | null {
+/**
+ * 「次に必要」な工程をまとめて求める。
+ * 通常は現在工程の次に来る工程だけを返すが、間の工程が完了扱い（不要ではなく）になっていて
+ * 現在工程が飛び越えられている場合は、現在工程も一緒に「次に必要」へ含める。
+ * （不要にした工程は正常に読み飛ばすだけで、抜けとは扱わない）
+ */
+export function getNextNeededProcesses(processes: ProjectProcess[]): ProjectProcess[] {
   const current = getCurrentProcess(processes);
+  if (!current) return [];
   const sorted = [...processes].sort((a, b) => a.sort_order - b.sort_order);
-  if (!current) return null;
-  return sorted.find((p) => p.sort_order > current.sort_order && p.status !== "完了" && p.status !== "不要") ?? null;
+  const after = sorted.filter((p) => p.sort_order > current.sort_order);
+  const classicNext = after.find((p) => p.status !== "完了" && p.status !== "不要");
+  if (!classicNext) return [];
+  const between = after.filter((p) => p.sort_order < classicNext.sort_order);
+  const hasCompletedGap = between.some((p) => p.status === "完了");
+  return hasCompletedGap ? [current, classicNext] : [classicNext];
 }
 
 export function countDone(processes: ProjectProcess[]): { done: number; total: number } {

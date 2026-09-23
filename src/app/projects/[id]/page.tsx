@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import type { Project, ProjectProcess, ProcessLog, LostReason, Source } from "@/lib/project-types";
 import {
   PROJECT_STATUS_ICONS, PROJECT_STATUS_COLORS, PROCESS_STATUS_ICONS, PROCESS_STATUS_COLORS,
-  getCurrentProcess, formatDate, formatDateTime, formatYen, googleMapsUrl,
+  getCurrentProcess, getNextNeededProcesses, formatDate, formatDateTime, formatYen, googleMapsUrl,
 } from "@/lib/project-types";
 import { useCurrentMember } from "@/lib/useCurrentMember";
 import MemberPickerModal from "@/components/projects/MemberPickerModal";
@@ -213,6 +213,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
   const processes = (project.processes ?? []).slice().sort((a, b) => a.sort_order - b.sort_order);
   const current = getCurrentProcess(processes);
+  const nextNeeded = getNextNeededProcesses(processes);
   const categories = Array.from(new Set(processes.map((p) => p.category)));
 
   return (
@@ -265,11 +266,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
           <div style={{ background: "#eff6ff", borderRadius: 12, padding: "10px 12px" }}>
             <div style={{ fontSize: 10, color: "#3b82f6", fontWeight: 700 }}>次に必要</div>
             <div style={{ fontSize: 14, fontWeight: 800, color: "#1d4ed8", marginTop: 2 }}>
-              {(() => {
-                const idx = current ? processes.findIndex((p) => p.id === current.id) : -1;
-                const nxt = idx >= 0 ? processes.slice(idx + 1).find((p) => p.status !== "完了" && p.status !== "不要") : null;
-                return nxt ? nxt.name : "なし";
-              })()}
+              {nextNeeded.length > 0 ? nextNeeded.map((p) => p.name).join("・") : "なし"}
             </div>
           </div>
         </div>
