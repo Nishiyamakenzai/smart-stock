@@ -4,7 +4,7 @@ import Link from "next/link";
 import type { Project, ProjectStatus } from "@/lib/project-types";
 import {
   PROJECT_STATUS_LIST, PROJECT_STATUS_ICONS, PROJECT_STATUS_COLORS,
-  getCurrentProcess, getNextProcess, countDone, stagnationDays, formatDate, isFullyCompleted,
+  getCurrentProcess, getNextNeededProcesses, countDone, stagnationDays, formatDate, isFullyCompleted,
 } from "@/lib/project-types";
 
 const STAGNATION_ALERT_DAYS = 3;
@@ -112,7 +112,7 @@ export default function ProjectListPage() {
 function ProjectCard({ project: p, muted }: { project: Project; muted?: boolean }) {
   const processes = p.processes ?? [];
   const current = getCurrentProcess(processes);
-  const next = getNextProcess(processes);
+  const nextNeeded = getNextNeededProcesses(processes);
   const { done, total } = countDone(processes);
   const days = stagnationDays(processes, p.updated_at);
   const alert = days >= STAGNATION_ALERT_DAYS && p.status === "進行中";
@@ -138,9 +138,9 @@ function ProjectCard({ project: p, muted }: { project: Project; muted?: boolean 
         <span style={{ background: "#f1f5f9", padding: "3px 8px", borderRadius: 8 }}>
           現在：{current ? current.name : "全工程完了"}
         </span>
-        {next && (
+        {nextNeeded.length > 0 && (
           <span style={{ background: "#eff6ff", color: "#1d4ed8", padding: "3px 8px", borderRadius: 8 }}>
-            次：{next.name}
+            次：{nextNeeded.map((p) => p.name).join("・")}
           </span>
         )}
       </div>
