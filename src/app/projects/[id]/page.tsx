@@ -14,7 +14,7 @@ import ProjectStatusModal from "@/components/projects/ProjectStatusModal";
 import ProjectEditModal from "@/components/projects/ProjectEditModal";
 import ConfirmModal from "@/components/projects/ConfirmModal";
 
-type PendingAction = { processId: string; action: "complete" | "skip" | "hold" | "problem" } | null;
+type PendingAction = { processId: string; processName: string; action: "complete" | "skip" | "hold" | "problem" } | null;
 type ActorPickerFor = { processId: string; action: string; reason?: string } | null;
 type BulkAction = { action: "complete" | "skip"; reason?: string } | null;
 
@@ -299,12 +299,12 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
               isCurrent={current?.id === p.id}
               expanded={expandedId === p.id}
               onToggle={() => setExpandedId(expandedId === p.id ? null : p.id)}
-              onComplete={() => setPendingAction({ processId: p.id, action: "complete" })}
+              onComplete={() => setPendingAction({ processId: p.id, processName: p.name, action: "complete" })}
               onSkip={(reason) => requestAction(p.id, "skip", reason)}
               onHold={(reason) => requestAction(p.id, "hold", reason)}
               onProblem={(reason) => requestAction(p.id, "problem", reason)}
               onReopen={() => requestAction(p.id, "reopen")}
-              onOpenReasonModal={(action) => setPendingAction({ processId: p.id, action })}
+              onOpenReasonModal={(action) => setPendingAction({ processId: p.id, processName: p.name, action })}
               onSetPlanned={() => setPlannedPickerFor(p.id)}
               onEditNote={() => setNotePickerFor(p.id)}
               selectMode={selectMode}
@@ -411,35 +411,40 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
         />
       )}
 
-      {pendingAction && (
-        <ReasonModal
-          title={
-            pendingAction.action === "complete" ? "完了メモ（任意）"
-            : pendingAction.action === "skip" ? "不要にする理由"
-            : pendingAction.action === "hold" ? "保留にする理由"
-            : "問題ありの内容"
-          }
-          required={pendingAction.action === "skip"}
-          confirmLabel={
-            pendingAction.action === "complete" ? "完了する"
-            : pendingAction.action === "skip" ? "不要にする"
-            : pendingAction.action === "hold" ? "保留にする"
-            : "問題ありにする"
-          }
-          confirmColor={
-            pendingAction.action === "complete" ? "#10b981"
-            : pendingAction.action === "skip" ? "#64748b"
-            : pendingAction.action === "hold" ? "#f59e0b"
-            : "#dc2626"
-          }
-          onClose={() => setPendingAction(null)}
-          onConfirm={(reason) => {
-            const { processId, action } = pendingAction;
-            setPendingAction(null);
-            requestAction(processId, action, reason || undefined);
-          }}
-        />
-      )}
+      {pendingAction && (() => {
+        const isContractLost = pendingAction.processName === "契約" && pendingAction.action === "problem";
+        return (
+          <ReasonModal
+            title={
+              pendingAction.action === "complete" ? "完了メモ（任意）"
+              : pendingAction.action === "skip" ? "不要にする理由"
+              : pendingAction.action === "hold" ? "保留にする理由"
+              : isContractLost ? "失注理由"
+              : "問題ありの内容"
+            }
+            required={pendingAction.action === "skip" || isContractLost}
+            confirmLabel={
+              pendingAction.action === "complete" ? "完了する"
+              : pendingAction.action === "skip" ? "不要にする"
+              : pendingAction.action === "hold" ? "保留にする"
+              : isContractLost ? "失注にする"
+              : "問題ありにする"
+            }
+            confirmColor={
+              pendingAction.action === "complete" ? "#10b981"
+              : pendingAction.action === "skip" ? "#64748b"
+              : pendingAction.action === "hold" ? "#f59e0b"
+              : "#dc2626"
+            }
+            onClose={() => setPendingAction(null)}
+            onConfirm={(reason) => {
+              const { processId, action } = pendingAction;
+              setPendingAction(null);
+              requestAction(processId, action, reason || undefined);
+            }}
+          />
+        );
+      })()}
 
       {notePickerFor && (
         <ReasonModal
@@ -506,6 +511,9 @@ function ProcessRow({
 }) {
   const resolved = process.status === "完了" || process.status === "不要";
   const canSelect = selectMode && !resolved;
+  const isContract = process.name === "契約";
+  const isLost = isContract && process.status === "問題あり";
+  const statusLabel = isLost ? "失注" : process.status;
   return (
     <div
       className="card-flat"
@@ -528,14 +536,14 @@ function ProcessRow({
             {process.status === "完了" && `${process.actual_assignee?.name ?? "―"} ・ ${formatDateTime(process.completed_at)}`}
             {process.status === "不要" && `不要：${process.skip_reason || "理由なし"}（${process.actual_assignee?.name ?? "―"}）`}
             {process.status === "保留" && `保留：${process.note || "理由なし"}`}
-            {process.status === "問題あり" && `⚠️ ${process.problem_note || "内容未記入"}`}
+            {process.status === "問題あり" && (isLost ? `🔴 失注：${process.problem_note || "理由なし"}` : `⚠️ ${process.problem_note || "内容未記入"}`)}
           </div>
         </div>
         <span
           className="tag"
           style={{ background: PROCESS_STATUS_COLORS[process.status] + "1a", color: PROCESS_STATUS_COLORS[process.status] }}
         >
-          {process.status}
+          {statusLabel}
         </span>
       </div>
 
@@ -573,7 +581,7 @@ function ProcessRow({
           <ActionButton label="完了" color="#10b981" onClick={onComplete} />
           <ActionButton label="不要" color="#64748b" onClick={() => onOpenReasonModal("skip")} />
           <ActionButton label="保留" color="#f59e0b" onClick={() => onOpenReasonModal("hold")} />
-          <ActionButton label="問題あり" color="#dc2626" onClick={() => onOpenReasonModal("problem")} />
+          <ActionButton label={isContract ? "失注" : "問題あり"} color="#dc2626" onClick={() => onOpenReasonModal("problem")} />
         </div>
       )}
 

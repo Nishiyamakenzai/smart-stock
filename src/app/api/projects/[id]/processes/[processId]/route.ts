@@ -7,6 +7,23 @@ export const dynamic = "force-dynamic";
 type Action = "complete" | "skip" | "hold" | "problem" | "reopen" | "update";
 
 /**
+ * 特定の工程の状態が変わったとき、案件状態（pm_projects.status）を自動的に連動させる。
+ * 「契約」は問題あり操作を「失注」として扱う（案件にとって致命的なため、通常の問題ありとは別枠）。
+ */
+function deriveProjectStatusUpdate(processName: string, action: Action, reason: string | null): Record<string, unknown> | null {
+  const today = new Date().toISOString().slice(0, 10);
+  if (processName === "契約") {
+    if (action === "complete") return { status: "成約", won_at: today };
+    if (action === "problem") return { status: "失注", lost_at: today, lost_reason_detail: reason || null };
+    if (action === "hold") return { status: "保留" };
+  }
+  if (processName === "近隣挨拶" && action === "complete") return { status: "施工中" };
+  if (processName === "完工・近隣挨拶" && action === "complete") return { status: "工事完了・最終確認" };
+  if (processName === "完了" && action === "complete") return { status: "完了" };
+  return null;
+}
+
+/**
  * PATCH /api/projects/[id]/processes/[processId]
  * 社員が行う操作は「完了」「不要」「保留」「問題あり」の4つ + 元に戻す(reopen) + 予定担当者/期限/補足の更新(update)
  * Body: { action, actor_id?, reason?, note?, planned_assignee_id?, due_date? }
@@ -110,6 +127,22 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       detail: logDetail,
       changedBy: actorId,
     });
+  }
+
+  const projectStatusUpdate = action !== "update" ? deriveProjectStatusUpdate(before.name, action, body.reason || null) : null;
+  if (projectStatusUpdate) {
+    const { data: projectBefore } = await sb.from("pm_projects").select("status").eq("id", id).single();
+    const { error: statusError } = await sb.from("pm_projects").update(projectStatusUpdate).eq("id", id);
+    if (!statusError && projectBefore && projectBefore.status !== projectStatusUpdate.status) {
+      await insertLog({
+        projectId: id,
+        action: "status_changed",
+        fromStatus: projectBefore.status,
+        toStatus: projectStatusUpdate.status as string,
+        detail: `「${before.name}」が${logDetail}になったため自動更新`,
+        changedBy: actorId,
+      });
+    }
   }
 
   const { data: full, error: fetchError } = await sb.from("pm_projects").select(PROJECT_SELECT).eq("id", id).single();
