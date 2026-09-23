@@ -36,7 +36,7 @@ export default function ContractCompleteModal({ onConfirm, onClose }: Props) {
         <label style={labelStyle}>工期・終了日 *</label>
         <input type="date" className="input-base" value={periodEnd} onChange={(e) => setPeriodEnd(e.target.value)} style={{ marginBottom: 12 }} />
 
-        <label style={labelStyle}>契約金額（円） *</label>
+        <label style={labelStyle}>契約金額（円・税込） *</label>
         <input type="number" inputMode="numeric" className="input-base" value={contractAmount} onChange={(e) => setContractAmount(e.target.value)} placeholder="例：1500000" style={{ marginBottom: 12 }} />
 
         <label style={labelStyle}>コメント（任意）</label>
