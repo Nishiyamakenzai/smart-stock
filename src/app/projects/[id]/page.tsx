@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import type { Project, ProjectProcess, ProcessLog, LostReason, Source } from "@/lib/project-types";
 import {
   PROJECT_STATUS_ICONS, PROJECT_STATUS_COLORS, PROCESS_STATUS_ICONS, PROCESS_STATUS_COLORS,
-  getCurrentProcess, formatDate, formatDateTime, formatYen,
+  getCurrentProcess, formatDate, formatDateTime, formatYen, googleMapsUrl,
 } from "@/lib/project-types";
 import { useCurrentMember } from "@/lib/useCurrentMember";
 import MemberPickerModal from "@/components/projects/MemberPickerModal";
@@ -16,6 +16,7 @@ import ConfirmModal from "@/components/projects/ConfirmModal";
 
 type PendingAction = { processId: string; action: "complete" | "skip" | "hold" | "problem" } | null;
 type ActorPickerFor = { processId: string; action: string; reason?: string } | null;
+type BulkAction = { action: "complete" | "skip"; reason?: string } | null;
 
 export default function ProjectDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -38,6 +39,11 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
   const [plannedPickerFor, setPlannedPickerFor] = useState<string | null>(null);
   const [notePickerFor, setNotePickerFor] = useState<string | null>(null);
   const [toast, setToast] = useState("");
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [showBulkReason, setShowBulkReason] = useState(false);
+  const [bulkAction, setBulkAction] = useState<BulkAction>(null);
+  const [bulkRunning, setBulkRunning] = useState(false);
 
   const autoExpandedRef = useRef(false);
 
@@ -86,6 +92,48 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
       showToast(action === "complete" ? "✅ 完了しました" : action === "skip" ? "❌ 不要にしました" : action === "hold" ? "⏸️ 保留にしました" : action === "problem" ? "⚠️ 問題ありにしました" : "元に戻しました");
       reload();
     }
+  };
+
+  const toggleSelectMode = () => {
+    setSelectMode(!selectMode);
+    setSelectedIds([]);
+  };
+
+  const toggleSelect = (processId: string) => {
+    setSelectedIds((prev) => (prev.includes(processId) ? prev.filter((x) => x !== processId) : [...prev, processId]));
+  };
+
+  /** 同じ人が同時に終わらせた複数工程を、まとめて「完了」または「不要」にする */
+  const startBulkComplete = () => {
+    if (selectedIds.length === 0) return;
+    setBulkAction({ action: "complete" });
+  };
+  const startBulkSkip = () => {
+    if (selectedIds.length === 0) return;
+    setShowBulkReason(true);
+  };
+
+  const handleBulkActorSelect = async (memberId: string) => {
+    if (!bulkAction) return;
+    setCurrentId(memberId);
+    const { action, reason } = bulkAction;
+    setBulkAction(null);
+    setBulkRunning(true);
+    const results = await Promise.all(
+      selectedIds.map((processId) =>
+        fetch(`/api/projects/${id}/processes/${processId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action, actor_id: memberId, reason }),
+        })
+      )
+    );
+    setBulkRunning(false);
+    const okCount = results.filter((r) => r.ok).length;
+    showToast(`${okCount}件を${action === "complete" ? "完了" : "不要"}にしました`);
+    setSelectMode(false);
+    setSelectedIds([]);
+    reload();
   };
 
   /** 予定担当者の設定・変更（誰でもいつでも選び直せる） */
@@ -172,6 +220,9 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <Link href="/projects" style={{ fontSize: 12, color: "#64748b", textDecoration: "none" }}>← 案件一覧</Link>
         <div style={{ display: "flex", gap: 12 }}>
+          <button onClick={toggleSelectMode} style={{ fontSize: 12, color: selectMode ? "#dc2626" : "#3b82f6", background: "none", border: "none", cursor: "pointer", fontWeight: 700 }}>
+            {selectMode ? "✕ 選択を終了" : "☑️ 複数選択"}
+          </button>
           <button onClick={() => setShowEditModal(true)} style={{ fontSize: 12, color: "#3b82f6", background: "none", border: "none", cursor: "pointer", fontWeight: 700 }}>
             ✏️ 編集
           </button>
@@ -224,7 +275,15 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
         </div>
 
         <div style={{ marginTop: 12, fontSize: 12, color: "#475569", lineHeight: 1.9 }}>
-          <div>📍 {project.address || "住所未登録"} ／ 築{project.building_age || "-"}</div>
+          <div>
+            📍{" "}
+            {project.address ? (
+              <a href={googleMapsUrl(project.address)} target="_blank" rel="noopener noreferrer" style={{ color: "#1d4ed8", textDecoration: "underline" }}>
+                {project.address} 🗺️
+              </a>
+            ) : "住所未登録"}
+            {" ／ "}{project.building_age || "築年数未登録"}
+          </div>
           <div>🔧 {project.work_content || "工事内容未登録"}</div>
           <div>📅 発生日 {formatDate(project.occurred_at)} ／ 発生源 {project.source?.name ?? "-"} ／ 工期 {project.construction_period || "未定"}</div>
         </div>
@@ -248,6 +307,9 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
               onOpenReasonModal={(action) => setPendingAction({ processId: p.id, action })}
               onSetPlanned={() => setPlannedPickerFor(p.id)}
               onEditNote={() => setNotePickerFor(p.id)}
+              selectMode={selectMode}
+              selected={selectedIds.includes(p.id)}
+              onToggleSelect={() => toggleSelect(p.id)}
             />
           ))}
         </div>
@@ -279,6 +341,52 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
         <div style={{ position: "fixed", bottom: 84, left: "50%", transform: "translateX(-50%)", background: "#0f172a", color: "#fff", padding: "10px 18px", borderRadius: 99, fontSize: 13, fontWeight: 600, zIndex: 300 }}>
           {toast}
         </div>
+      )}
+
+      {selectMode && (
+        <div style={{ position: "fixed", bottom: 64, left: 0, right: 0, background: "#fff", borderTop: "1px solid #e2e8f0", padding: "12px 16px", zIndex: 150, boxShadow: "0 -4px 16px rgba(0,0,0,.06)" }}>
+          <div style={{ maxWidth: 720, margin: "0 auto", display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", flexShrink: 0 }}>{selectedIds.length}件選択中</span>
+            <button
+              onClick={startBulkComplete}
+              disabled={selectedIds.length === 0 || bulkRunning}
+              style={{ flex: 1, padding: 11, background: "#10b981", color: "#fff", border: "none", borderRadius: 10, fontSize: 13, fontWeight: 800, cursor: "pointer", opacity: selectedIds.length === 0 ? 0.5 : 1 }}
+            >
+              まとめて完了
+            </button>
+            <button
+              onClick={startBulkSkip}
+              disabled={selectedIds.length === 0 || bulkRunning}
+              style={{ flex: 1, padding: 11, background: "#64748b", color: "#fff", border: "none", borderRadius: 10, fontSize: 13, fontWeight: 800, cursor: "pointer", opacity: selectedIds.length === 0 ? 0.5 : 1 }}
+            >
+              まとめて不要
+            </button>
+          </div>
+        </div>
+      )}
+
+      {showBulkReason && (
+        <ReasonModal
+          title="不要にする理由（選択した全工程に適用）"
+          required
+          confirmLabel="不要にする"
+          confirmColor="#64748b"
+          onClose={() => setShowBulkReason(false)}
+          onConfirm={(reason) => {
+            setShowBulkReason(false);
+            setBulkAction({ action: "skip", reason });
+          }}
+        />
+      )}
+
+      {bulkAction && (
+        <MemberPickerModal
+          members={members}
+          title={`対応者を選択（${selectedIds.length}件まとめて${bulkAction.action === "complete" ? "完了" : "不要"}）`}
+          highlightId={currentId}
+          onSelect={handleBulkActorSelect}
+          onClose={() => setBulkAction(null)}
+        />
       )}
 
       {actorPickerFor && (
@@ -378,6 +486,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
 function ProcessRow({
   process, isCurrent, expanded, onToggle, onComplete, onSkip, onHold, onProblem, onReopen, onOpenReasonModal, onSetPlanned, onEditNote,
+  selectMode, selected, onToggleSelect,
 }: {
   process: ProjectProcess;
   isCurrent: boolean;
@@ -391,12 +500,28 @@ function ProcessRow({
   onOpenReasonModal: (action: "skip" | "hold" | "problem") => void;
   onSetPlanned: () => void;
   onEditNote: () => void;
+  selectMode: boolean;
+  selected: boolean;
+  onToggleSelect: () => void;
 }) {
   const resolved = process.status === "完了" || process.status === "不要";
+  const canSelect = selectMode && !resolved;
   return (
-    <div className="card-flat" style={{ marginBottom: 8, borderColor: isCurrent ? "#93c5fd" : "#e2e8f0", background: isCurrent ? "#f8fbff" : "#fff" }}>
-      <div onClick={onToggle} style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}>
-        <span style={{ fontSize: 18 }}>{PROCESS_STATUS_ICONS[process.status]}</span>
+    <div
+      className="card-flat"
+      style={{
+        marginBottom: 8,
+        borderColor: selected ? "#3b82f6" : isCurrent ? "#93c5fd" : "#e2e8f0",
+        background: selected ? "#eff6ff" : isCurrent ? "#f8fbff" : "#fff",
+        opacity: selectMode && resolved ? 0.5 : 1,
+      }}
+    >
+      <div onClick={canSelect ? onToggleSelect : onToggle} style={{ display: "flex", alignItems: "center", gap: 10, cursor: canSelect || !selectMode ? "pointer" : "default" }}>
+        {selectMode ? (
+          <span style={{ fontSize: 18 }}>{canSelect ? (selected ? "✅" : "⬜") : "🚫"}</span>
+        ) : (
+          <span style={{ fontSize: 18 }}>{PROCESS_STATUS_ICONS[process.status]}</span>
+        )}
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 14, fontWeight: isCurrent ? 800 : 600, color: "#0f172a" }}>{process.name}</div>
           <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 1 }}>
@@ -414,6 +539,7 @@ function ProcessRow({
         </span>
       </div>
 
+      {!selectMode && (
       <div style={{ marginTop: 8, marginLeft: 28, display: "flex", flexWrap: "wrap", gap: 6 }}>
         {!resolved && (
           <button
@@ -440,8 +566,9 @@ function ProcessRow({
           💬 {process.status !== "保留" && process.note ? process.note : "コメントを追加"}
         </button>
       </div>
+      )}
 
-      {expanded && !resolved && (
+      {!selectMode && expanded && !resolved && (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6, marginTop: 12 }}>
           <ActionButton label="完了" color="#10b981" onClick={onComplete} />
           <ActionButton label="不要" color="#64748b" onClick={() => onOpenReasonModal("skip")} />
@@ -450,7 +577,7 @@ function ProcessRow({
         </div>
       )}
 
-      {expanded && resolved && (
+      {!selectMode && expanded && resolved && (
         <div style={{ marginTop: 10 }}>
           <button onClick={onReopen} style={{ fontSize: 11, color: "#94a3b8", background: "none", border: "none", textDecoration: "underline", cursor: "pointer" }}>
             ← 未完了に戻す（訂正）

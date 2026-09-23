@@ -192,3 +192,23 @@ export function formatYen(n: number | null | undefined): string {
   if (n === null || n === undefined) return "";
   return `¥${n.toLocaleString("ja-JP")}`;
 }
+
+/** 住所からGoogleマップの検索URLを作る */
+export function googleMapsUrl(address: string): string {
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
+}
+
+/**
+ * 築年数の入力を「築◯◯年（20XX年頃）」の表示用文字列に変換する。
+ * 数字だけが入力された場合のみ自動変換し、それ以外（「新築」等）はそのまま扱う。
+ */
+export function formatBuildingAge(input: string): string {
+  const trimmed = input.trim();
+  if (!trimmed) return "";
+  if (/^\d+$/.test(trimmed)) {
+    const years = Number(trimmed);
+    const builtYear = new Date().getFullYear() - years;
+    return `築${years}年（${builtYear}年頃）`;
+  }
+  return trimmed;
+}

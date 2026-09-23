@@ -111,7 +111,7 @@ export default function Header({ comp, targets, onOpenTargets, onOpenBS, onOpenB
             textDecoration:"none",
             transition:"background .15s",
             whiteSpace:"nowrap",
-          }}>📋 案件進捗</Link>
+          }}>🏮 ANDON</Link>
         </div>
       </div>
 
