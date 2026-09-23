@@ -9,11 +9,22 @@ type Action = "complete" | "skip" | "hold" | "problem" | "reopen" | "update";
 /**
  * 特定の工程の状態が変わったとき、案件状態（pm_projects.status）を自動的に連動させる。
  * 「契約」は問題あり操作を「失注」として扱う（案件にとって致命的なため、通常の問題ありとは別枠）。
+ * 「契約」を完了にした場合は、あわせて入力された工期・契約金額も案件情報へ反映する。
  */
-function deriveProjectStatusUpdate(processName: string, action: Action, reason: string | null): Record<string, unknown> | null {
+function deriveProjectStatusUpdate(
+  processName: string,
+  action: Action,
+  reason: string | null,
+  body: Record<string, unknown>
+): Record<string, unknown> | null {
   const today = new Date().toISOString().slice(0, 10);
   if (processName === "契約") {
-    if (action === "complete") return { status: "成約", won_at: today };
+    if (action === "complete") {
+      const update: Record<string, unknown> = { status: "成約", won_at: today };
+      if (typeof body.contract_amount === "number") update.contract_amount = body.contract_amount;
+      if (typeof body.construction_period === "string" && body.construction_period) update.construction_period = body.construction_period;
+      return update;
+    }
     if (action === "problem") return { status: "失注", lost_at: today, lost_reason_detail: reason || null };
     if (action === "hold") return { status: "保留" };
   }
@@ -129,7 +140,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     });
   }
 
-  const projectStatusUpdate = action !== "update" ? deriveProjectStatusUpdate(before.name, action, body.reason || null) : null;
+  const projectStatusUpdate = action !== "update" ? deriveProjectStatusUpdate(before.name, action, body.reason || null, body) : null;
   if (projectStatusUpdate) {
     const { data: projectBefore } = await sb.from("pm_projects").select("status").eq("id", id).single();
     const { error: statusError } = await sb.from("pm_projects").update(projectStatusUpdate).eq("id", id);
