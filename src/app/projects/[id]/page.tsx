@@ -13,9 +13,10 @@ import ReasonModal from "@/components/projects/ReasonModal";
 import ProjectStatusModal from "@/components/projects/ProjectStatusModal";
 import ProjectEditModal from "@/components/projects/ProjectEditModal";
 import ConfirmModal from "@/components/projects/ConfirmModal";
+import ContractCompleteModal from "@/components/projects/ContractCompleteModal";
 
 type PendingAction = { processId: string; processName: string; action: "complete" | "skip" | "hold" | "problem" } | null;
-type ActorPickerFor = { processId: string; action: string; reason?: string } | null;
+type ActorPickerFor = { processId: string; action: string; reason?: string; extra?: Record<string, unknown> } | null;
 type BulkAction = { action: "complete" | "skip"; reason?: string } | null;
 
 export default function ProjectDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -38,6 +39,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
   const [actorPickerFor, setActorPickerFor] = useState<ActorPickerFor>(null);
   const [plannedPickerFor, setPlannedPickerFor] = useState<string | null>(null);
   const [notePickerFor, setNotePickerFor] = useState<string | null>(null);
+  const [contractCompleteFor, setContractCompleteFor] = useState<string | null>(null);
   const [toast, setToast] = useState("");
   const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -71,19 +73,19 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(""), 2400); };
 
   /** 完了・不要・保留・問題あり・元に戻す ―― どれも「誰が対応したか」を毎回選んでもらう */
-  const requestAction = (processId: string, action: string, reason?: string) => {
-    setActorPickerFor({ processId, action, reason });
+  const requestAction = (processId: string, action: string, reason?: string, extra?: Record<string, unknown>) => {
+    setActorPickerFor({ processId, action, reason, extra });
   };
 
   const handleActorSelect = async (memberId: string) => {
     if (!actorPickerFor) return;
     setCurrentId(memberId);
-    const { processId, action, reason } = actorPickerFor;
+    const { processId, action, reason, extra } = actorPickerFor;
     setActorPickerFor(null);
     const res = await fetch(`/api/projects/${id}/processes/${processId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action, actor_id: memberId, reason }),
+      body: JSON.stringify({ action, actor_id: memberId, reason, ...extra }),
     });
     if (res.ok) {
       const data = await res.json();
@@ -134,6 +136,17 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
     setSelectMode(false);
     setSelectedIds([]);
     reload();
+  };
+
+  /** 「契約」を完了にするときは、工期・契約金額もまとめて記録する */
+  const handleContractComplete = (payload: { periodStart: string; periodEnd: string; contractAmount: number; note: string }) => {
+    if (!contractCompleteFor) return;
+    const processId = contractCompleteFor;
+    setContractCompleteFor(null);
+    requestAction(processId, "complete", payload.note || undefined, {
+      contract_amount: payload.contractAmount,
+      construction_period: `${formatDate(payload.periodStart)}〜${formatDate(payload.periodEnd)}`,
+    });
   };
 
   /** 予定担当者の設定・変更（誰でもいつでも選び直せる） */
@@ -296,7 +309,10 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
               isCurrent={current?.id === p.id}
               expanded={expandedId === p.id}
               onToggle={() => setExpandedId(expandedId === p.id ? null : p.id)}
-              onComplete={() => setPendingAction({ processId: p.id, processName: p.name, action: "complete" })}
+              onComplete={() => {
+                if (p.name === "契約") setContractCompleteFor(p.id);
+                else setPendingAction({ processId: p.id, processName: p.name, action: "complete" });
+              }}
               onSkip={(reason) => requestAction(p.id, "skip", reason)}
               onHold={(reason) => requestAction(p.id, "hold", reason)}
               onProblem={(reason) => requestAction(p.id, "problem", reason)}
@@ -452,6 +468,13 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
           defaultValue={processes.find((p) => p.id === notePickerFor)?.note ?? ""}
           onClose={() => setNotePickerFor(null)}
           onConfirm={(text) => setNote(notePickerFor, text)}
+        />
+      )}
+
+      {contractCompleteFor && (
+        <ContractCompleteModal
+          onClose={() => setContractCompleteFor(null)}
+          onConfirm={handleContractComplete}
         />
       )}
 
