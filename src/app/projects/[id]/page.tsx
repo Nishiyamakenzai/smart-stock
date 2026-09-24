@@ -70,7 +70,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
     fetch("/api/project-sources").then((r) => r.json()).then((d) => setSources(Array.isArray(d) ? d.filter((s: Source) => s.is_active) : []));
   }, []);
 
-  const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(""), 2400); };
+  const showToast = (msg: string, durationMs = 2400) => { setToast(msg); setTimeout(() => setToast(""), durationMs); };
 
   /** 完了・不要・保留・問題あり・元に戻す ―― どれも「誰が対応したか」を毎回選んでもらう */
   const requestAction = (processId: string, action: string, reason?: string, extra?: Record<string, unknown>) => {
@@ -91,7 +91,11 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
       const data = await res.json();
       setProject(data.project);
       setExpandedId(null);
-      showToast(action === "complete" ? "✅ 完了しました" : action === "skip" ? "❌ 不要にしました" : action === "hold" ? "⏸️ 保留にしました" : action === "problem" ? "⚠️ 問題ありにしました" : "元に戻しました");
+      if (data.warning) {
+        showToast(`⚠️ ${data.warning}`, 8000);
+      } else {
+        showToast(action === "complete" ? "✅ 完了しました" : action === "skip" ? "❌ 不要にしました" : action === "hold" ? "⏸️ 保留にしました" : action === "problem" ? "⚠️ 問題ありにしました" : "元に戻しました");
+      }
       reload();
     }
   };
@@ -127,12 +131,17 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ action, actor_id: memberId, reason }),
-        })
+        }).then(async (r) => ({ ok: r.ok, data: r.ok ? await r.json() : null }))
       )
     );
     setBulkRunning(false);
     const okCount = results.filter((r) => r.ok).length;
-    showToast(`${okCount}件を${action === "complete" ? "完了" : "不要"}にしました`);
+    const warning = results.find((r) => r.data?.warning)?.data?.warning;
+    if (warning) {
+      showToast(`⚠️ ${warning}`, 8000);
+    } else {
+      showToast(`${okCount}件を${action === "complete" ? "完了" : "不要"}にしました`);
+    }
     setSelectMode(false);
     setSelectedIds([]);
     reload();
@@ -351,7 +360,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
       </div>
 
       {toast && (
-        <div style={{ position: "fixed", bottom: 84, left: "50%", transform: "translateX(-50%)", background: "#0f172a", color: "#fff", padding: "10px 18px", borderRadius: 99, fontSize: 13, fontWeight: 600, zIndex: 300 }}>
+        <div style={{ position: "fixed", bottom: 84, left: "50%", transform: "translateX(-50%)", background: "#0f172a", color: "#fff", padding: "10px 18px", borderRadius: 14, fontSize: 13, fontWeight: 600, zIndex: 300, maxWidth: "88vw", width: "max-content", textAlign: "center", lineHeight: 1.5 }}>
           {toast}
         </div>
       )}

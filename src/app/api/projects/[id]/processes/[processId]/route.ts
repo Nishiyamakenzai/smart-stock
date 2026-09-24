@@ -141,10 +141,19 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   }
 
   const projectStatusUpdate = action !== "update" ? deriveProjectStatusUpdate(before.name, action, body.reason || null, body) : null;
+  let statusUpdateWarning: string | null = null;
   if (projectStatusUpdate) {
     const { data: projectBefore } = await sb.from("pm_projects").select("status").eq("id", id).single();
     const { error: statusError } = await sb.from("pm_projects").update(projectStatusUpdate).eq("id", id);
-    if (!statusError && projectBefore && projectBefore.status !== projectStatusUpdate.status) {
+    if (statusError) {
+      statusUpdateWarning = `案件状態を「${projectStatusUpdate.status}」に自動更新できませんでした（${statusError.message}）。データベースの設定更新が必要な可能性があります。管理者に連絡してください。`;
+      await insertLog({
+        projectId: id,
+        action: "edited",
+        detail: `「${before.name}」が${logDetail}になったため案件状態を「${projectStatusUpdate.status}」へ自動更新しようとして失敗：${statusError.message}`,
+        changedBy: actorId,
+      });
+    } else if (projectBefore && projectBefore.status !== projectStatusUpdate.status) {
       await insertLog({
         projectId: id,
         action: "status_changed",
@@ -159,5 +168,5 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const { data: full, error: fetchError } = await sb.from("pm_projects").select(PROJECT_SELECT).eq("id", id).single();
   if (fetchError) return Response.json({ error: fetchError.message }, { status: 500 });
 
-  return Response.json({ process: updated, project: full });
+  return Response.json({ process: updated, project: full, warning: statusUpdateWarning });
 }
