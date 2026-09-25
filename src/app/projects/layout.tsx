@@ -90,7 +90,7 @@ export default function ProjectsLayout({ children }: { children: React.ReactNode
   return (
     <div style={{ minHeight: "100vh", background: "#f8fafc", paddingBottom: 80 }}>
       <TopBar onLogout={handleLogout} />
-      <div style={{ maxWidth: 720, margin: "0 auto" }}>{children}</div>
+      <div className="projects-content-wrap">{children}</div>
       <BottomNav />
     </div>
   );

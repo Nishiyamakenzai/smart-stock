@@ -229,6 +229,20 @@ select { -webkit-appearance: none; }
   background: #fff;
 }
 
+/* ── ANDON（案件進捗管理）コンテンツ幅：PCでは横幅いっぱいに広げる ── */
+.projects-content-wrap { max-width: 720px; margin: 0 auto; }
+@media (min-width: 900px) {
+  .projects-content-wrap { max-width: 1280px; }
+}
+
+/* ── 案件一覧の工程パート別カラム：PCでは横スクロールなしで均等表示 ── */
+.project-kanban-wrap { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 8px; align-items: flex-start; }
+.project-kanban-col { flex: 0 0 82vw; max-width: 320px; min-width: 240px; }
+@media (min-width: 900px) {
+  .project-kanban-wrap { overflow-x: visible; }
+  .project-kanban-col { flex: 1 1 0; max-width: none; min-width: 0; }
+}
+
 /* ── Mobile responsive ─────────────────── */
 @media (max-width: 520px) {
   /* iOSでfocus時のズーム防止 (font-size>=16px) */

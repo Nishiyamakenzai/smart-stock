@@ -93,9 +93,9 @@ export default function ProjectListPage() {
           {ongoing.length === 0 ? (
             <div style={{ textAlign: "center", padding: 24, color: "#94a3b8", fontSize: 13 }}>進行中の案件はありません</div>
           ) : (
-            <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 8, alignItems: "flex-start" }}>
+            <div className="project-kanban-wrap">
               {columns.map((col) => (
-                <div key={col.phase} style={{ flex: "0 0 82vw", maxWidth: 320, minWidth: 240 }}>
+                <div key={col.phase} className="project-kanban-col">
                   <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 800, color: "#334155", marginBottom: 8, padding: "0 2px" }}>
                     <span>{PHASE_ICONS[col.phase] ?? "📌"}</span>
                     <span>{col.phase}</span>
