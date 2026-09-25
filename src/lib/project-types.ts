@@ -182,15 +182,31 @@ export function isFullyCompleted(processes: ProjectProcess[]): boolean {
   return getCurrentProcess(processes) === null;
 }
 
-/** 最終更新（工程の中で最も新しい completed_at / updated_at）からの停滞日数 */
-export function stagnationDays(processes: ProjectProcess[], projectUpdatedAt: string): number {
+/** 案件の最終更新日時（工程の中で最も新しい completed_at / updated_at と案件自体の更新日時のうち最新のもの） */
+export function latestActivityAt(processes: ProjectProcess[], projectUpdatedAt: string): string {
   const dates = processes
     .map((p) => p.completed_at ?? p.updated_at)
     .filter((d): d is string => !!d)
     .concat(projectUpdatedAt);
-  const latest = dates.reduce((max, d) => (new Date(d) > new Date(max) ? d : max), dates[0] ?? projectUpdatedAt);
+  return dates.reduce((max, d) => (new Date(d) > new Date(max) ? d : max), dates[0] ?? projectUpdatedAt);
+}
+
+/** 最終更新からの停滞日数 */
+export function stagnationDays(processes: ProjectProcess[], projectUpdatedAt: string): number {
+  const latest = latestActivityAt(processes, projectUpdatedAt);
   const diffMs = Date.now() - new Date(latest).getTime();
   return Math.max(0, Math.floor(diffMs / (1000 * 60 * 60 * 24)));
+}
+
+/** 案件が現在どの工程パート（カテゴリ）に居るかを求める。そのカテゴリの最終工程が完了・不要になるまでは、そのカテゴリに居るとみなす。 */
+export function getProjectPhase(processes: ProjectProcess[]): string {
+  const categories = Array.from(new Set(processes.slice().sort((a, b) => a.sort_order - b.sort_order).map((p) => p.category)));
+  for (const cat of categories) {
+    const inCat = processes.filter((p) => p.category === cat);
+    const last = inCat.reduce((a, b) => (a.sort_order > b.sort_order ? a : b));
+    if (last.status !== "完了" && last.status !== "不要") return cat;
+  }
+  return categories[categories.length - 1] ?? "";
 }
 
 export function formatDate(dateStr: string | null | undefined): string {
