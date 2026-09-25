@@ -4,10 +4,12 @@ import Link from "next/link";
 import type { Project, ProjectStatus } from "@/lib/project-types";
 import {
   PROJECT_STATUS_LIST, PROJECT_STATUS_ICONS, PROJECT_STATUS_COLORS,
-  getCurrentProcess, getNextNeededProcesses, countDone, stagnationDays, formatDate, isFullyCompleted,
+  getCurrentProcess, getNextNeededProcesses, countDone, stagnationDays, latestActivityAt, formatDate, isFullyCompleted, getProjectPhase,
 } from "@/lib/project-types";
 
 const STAGNATION_ALERT_DAYS = 3;
+const PHASE_ORDER = ["営業・契約", "着工準備", "完工・アフター"];
+const PHASE_ICONS: Record<string, string> = { "営業・契約": "🤝", "着工準備": "🛠️", "完工・アフター": "🏁" };
 
 export default function ProjectListPage() {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -38,8 +40,15 @@ export default function ProjectListPage() {
     });
   }, [projects, keyword, statusFilter, onlyAlert]);
 
-  const ongoing = filtered.filter((p) => !isFullyCompleted(p.processes ?? []));
+  const ongoing = filtered
+    .filter((p) => !isFullyCompleted(p.processes ?? []))
+    .slice()
+    .sort((a, b) => new Date(latestActivityAt(b.processes ?? [], b.updated_at)).getTime() - new Date(latestActivityAt(a.processes ?? [], a.updated_at)).getTime());
   const done = filtered.filter((p) => isFullyCompleted(p.processes ?? []));
+  const columns = PHASE_ORDER.map((phase) => ({
+    phase,
+    projects: ongoing.filter((p) => getProjectPhase(p.processes ?? []) === phase),
+  }));
 
   return (
     <div style={{ padding: "14px 14px 24px" }}>
@@ -84,7 +93,22 @@ export default function ProjectListPage() {
           {ongoing.length === 0 ? (
             <div style={{ textAlign: "center", padding: 24, color: "#94a3b8", fontSize: 13 }}>進行中の案件はありません</div>
           ) : (
-            ongoing.map((p) => <ProjectCard key={p.id} project={p} />)
+            <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 8, alignItems: "flex-start" }}>
+              {columns.map((col) => (
+                <div key={col.phase} style={{ flex: "0 0 82vw", maxWidth: 320, minWidth: 240 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 800, color: "#334155", marginBottom: 8, padding: "0 2px" }}>
+                    <span>{PHASE_ICONS[col.phase] ?? "📌"}</span>
+                    <span>{col.phase}</span>
+                    <span style={{ color: "#94a3b8", fontWeight: 700 }}>（{col.projects.length}件）</span>
+                  </div>
+                  {col.projects.length === 0 ? (
+                    <div style={{ textAlign: "center", padding: 20, color: "#cbd5e1", fontSize: 12, background: "#f8fafc", borderRadius: 12 }}>なし</div>
+                  ) : (
+                    col.projects.map((p) => <ProjectCard key={p.id} project={p} />)
+                  )}
+                </div>
+              ))}
+            </div>
           )}
 
           {done.length > 0 && (
