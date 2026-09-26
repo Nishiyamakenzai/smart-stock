@@ -28,6 +28,7 @@ export default function ProjectListPage() {
 
   const filtered = useMemo(() => {
     return projects.filter((p) => {
+      if (statusFilter === "全て" && p.status === "失注") return false;
       if (statusFilter !== "全て" && p.status !== statusFilter) return false;
       const days = stagnationDays(p.processes ?? [], p.updated_at);
       if (onlyAlert && days < STAGNATION_ALERT_DAYS) return false;
