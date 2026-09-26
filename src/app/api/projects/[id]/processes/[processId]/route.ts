@@ -28,9 +28,10 @@ function deriveProjectStatusUpdate(
     if (action === "problem") return { status: "失注", lost_at: today, lost_reason_detail: reason || null };
     if (action === "hold") return { status: "保留" };
   }
-  if (processName === "近隣挨拶" && action === "complete") return { status: "施工中" };
-  if (processName === "完工・近隣挨拶" && action === "complete") return { status: "工事完了・最終確認" };
-  if (processName === "完了" && action === "complete") return { status: "完了" };
+  const isFinished = action === "complete" || action === "skip";
+  if (processName === "近隣挨拶" && isFinished) return { status: "施工中" };
+  if (processName === "完工・近隣挨拶" && isFinished) return { status: "工事完了・最終確認" };
+  if (processName === "完了" && isFinished) return { status: "完了" };
   return null;
 }
 
